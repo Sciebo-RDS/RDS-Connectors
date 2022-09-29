@@ -1,4 +1,4 @@
-using DorisScieboRdsConnector.Services.ScieboRdsTokenStorage;
+using DorisScieboRdsConnector.Services.ScieboRds;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 

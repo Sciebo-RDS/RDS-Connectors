@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace DorisScieboRdsConnector.Services.ScieboRdsTokenStorage;
+namespace DorisScieboRdsConnector.Services.ScieboRds;
 
 public interface IScieboRdsService
 {
