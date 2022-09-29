@@ -1,0 +1,19 @@
+version: '3.4'
+
+services:
+  dorissciebordsconnector:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - Domain=test.se
+      - ScieboRds__TokenStorageUrl
+      - S3__Url=https://test.se
+      - S3__AccessKey=key
+      - S3__SecretKey=secret
+      - ManifestIndex__Url=https://snd-storage-metadata-index-test-snd-dev.apps.k8s.gu.se
+      - ManifestIndex__ApiKey=key
+    ports:
+      - 8080:80
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
