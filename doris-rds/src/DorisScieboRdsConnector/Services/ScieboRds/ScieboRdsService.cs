@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 
-namespace DorisScieboRdsConnector.Services.ScieboRdsTokenStorage
+namespace DorisScieboRdsConnector.Services.ScieboRds
 {
     public class ScieboRdsService : IScieboRdsService
     {
