@@ -27,28 +27,34 @@ namespace DorisScieboRdsConnector.Services.ScieboRdsTokenStorage
                 return;
             }
 
-            await httpClient.PostAsJsonAsync(url + "/service", new
+            var response = await httpClient.PostAsJsonAsync(url + "/service", new
             {
-                servicename = "doris-connector",
-                implements = new[] { "fileStorage" },
-			    loginMode = 0, // credentials
-                credentials = new
+                type = "LoginService",
+                data = new
                 {
-                    userId = true,
-                    password = true
-                },
-                fileTransferMode = 0, // active
-                fileTransferArchive = 0, // none
-                description = new
-                {
-                    en = "Connector for publishing file metadata to Doris",
-                    sv = "Connector för filmetadata till Doris"
-                },
-                icon = icon,
-                infoUrl = "https://doris.snd.gu.se",
-                helpUrl = "https://doris.snd.gu.se",
-                displayName = "Doris connector"
+                    servicename = "doris-connector",
+                    implements = new[] { "fileStorage" },
+                    loginMode = 0, // credentials
+                    credentials = new
+                    {
+                        userId = false,
+                        password = false
+                    },
+                    fileTransferMode = 0, // active
+                    fileTransferArchive = 0, // none
+                    description = new
+                    {
+                        en = "Connector for publishing file metadata to Doris",
+                        sv = "Connector för filmetadata till Doris"
+                    },
+                    icon = icon,
+                    infoUrl = "https://doris.snd.gu.se",
+                    helpUrl = "https://doris.snd.gu.se",
+                    displayName = "Doris connector"
+                }
             });
+
+            response.EnsureSuccessStatusCode();
         }
     }
 }
