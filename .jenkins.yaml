@@ -1,0 +1,13 @@
+---
+git:
+  branch: main
+triggers:
+  cron: "@daily"
+clean_workspace: true
+builders:
+  - docker
+docker_name: rds/doris-rds
+docker_context_dir: doris-rds/src/DorisScieboRdsConnector
+docker_tags:
+  - "latest"
+docker_no_cache: true
