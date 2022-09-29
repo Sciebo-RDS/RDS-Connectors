@@ -7,6 +7,6 @@ public record File(
     long? ContentSize,
     DateTime? DateCreated,
     DateTime? DateModified,
-    string EncodingFormat,
-    string Sha256,
-    Uri Url);
+    string? EncodingFormat,
+    string? Sha256,
+    Uri? Url);

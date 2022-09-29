@@ -1,19 +1,19 @@
-namespace DorisScieboRdsConnector.Helpers.RoCrateHelper
+namespace DorisScieboRdsConnector.Helpers
 {
-    using System.Text.Json;
     using System.Text.Json.Nodes;
     using DorisScieboRdsConnector.Models;
 
     public static class RoCrateHelper{
 
-        public static JsonArray generateRoCrateManifest(string projctId, string domain, string eduPersonPrincipalName, File[] files){
+        public static JsonObject generateRoCrateManifest(string projctId, string domain, string eduPersonPrincipalName, File[] files){
 
             var graph = new JsonArray();
             
             graph.Add(new JsonObject{
                 ["@type"] = "CreativeWork",
                 ["@id"] = "ro-crate-metadata.json",
-                ["identifier"] = "38d0324a-9fa6-11ec-b909-0242ac120002", //must be persistent
+                ["identifier"] = System.Guid.NewGuid(),
+                [" alternateName"] = projctId,
                 ["conformsTo"] = new JsonObject
                 {
                     ["@id"] = "https://w3id.org/ro/crate/1.1"
@@ -24,20 +24,98 @@ namespace DorisScieboRdsConnector.Helpers.RoCrateHelper
                 },
                 ["publisher"] = new JsonObject
                 {
-                    ["@id"] = "https://ror.org/01tm6cn81", //Reference to Organization (could also be a local id)
+                    ["@id"] = "https://" + domain,
                 },
                 ["creator"] = new JsonArray
                 {
                     new JsonObject
                     {
-                        ["@id"] = "https://orcid.org/0000-0003-4908-2169", //reference to person object, (could also be a local id)
+                        ["@id"] = "https://"+domain + "#" + eduPersonPrincipalName,
                     }
                 }
             });
 
-            return graph;
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "Organization",
+                ["@id"] = "https://" + domain,
+                ["identifier"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["@id"] = "#domain-0" 
+                    }
+                },
+            });
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "PropertyValue",
+                ["@id"] = "#domain-0",
+                ["propertyID"] = "domain",
+                ["value"] = domain 
+            });
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "Person",
+                ["@id"] = "https://"+domain+"#"+eduPersonPrincipalName,
+                ["identifier"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["@id"] = "#eduPersonPrincipalName-0" //reference to PropertyValue holding edugain id
+                    }
+                }
+            });
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "PropertyValue",
+                ["@id"] = "#eduPersonPrincipalName-0",
+                ["propertyID"] = "eduPersonPrincipalName",
+                ["value"] = eduPersonPrincipalName
+            });
+
+            var hasPart = new JsonArray();
+            var roCrateFiles = new JsonArray();
+
+            foreach(File file in files)
+            {
+                hasPart.Add(new JsonObject
+                {
+                    ["@id"] = file.Id
+                });
+
+                JsonObject fileObject = new JsonObject{
+                    ["@type"] = "File",
+                    ["@id"] = file.Id,
+                };
+
+                // TODO: refactor and add created & modified date
+                if(file.Sha256 != null) fileObject["sha256"] = file.Sha256;
+                if(file.ContentSize != null) fileObject["contentSize"] = file.ContentSize;
+                if(file.EncodingFormat != null) fileObject["encodingFormat"] = file.EncodingFormat;
+                if(file.Url != null) fileObject["url"] = file.Url.AbsoluteUri;
+ 
+                graph.Add(fileObject);
+            }
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "Dataset",
+                ["@id"] = "./",
+                ["hasPart"] = hasPart
+            });
+
+            var roCrate = new JsonObject
+            {
+                ["@context"] = "https://w3id.org/ro/crate/1.1/context",
+                ["@graph"] = graph
+            };
+
+            return roCrate;
         }
-
-
     }
 }
