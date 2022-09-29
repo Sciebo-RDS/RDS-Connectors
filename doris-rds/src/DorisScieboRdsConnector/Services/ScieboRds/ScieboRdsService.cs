@@ -32,7 +32,7 @@ namespace DorisScieboRdsConnector.Services.ScieboRds
                 type = "LoginService",
                 data = new
                 {
-                    servicename = "doris-connector",
+                    servicename = "port-doris-connector",
                     implements = new[] { "metadata" },
                     loginMode = 0, // credentials
                     credentials = new
