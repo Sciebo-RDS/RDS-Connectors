@@ -33,7 +33,7 @@ namespace DorisScieboRdsConnector.Services.ScieboRdsTokenStorage
                 data = new
                 {
                     servicename = "doris-connector",
-                    implements = new[] { "fileStorage" },
+                    implements = new[] { "metadata" },
                     loginMode = 0, // credentials
                     credentials = new
                     {
