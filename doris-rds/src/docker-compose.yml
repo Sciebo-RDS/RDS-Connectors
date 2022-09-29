@@ -5,4 +5,4 @@ services:
     image: ${DOCKER_REGISTRY-}dorissciebordsconnector
     build:
       context: .
-      dockerfile: DorisScieboRdsConnector/Dockerfile
+      dockerfile: Dockerfile
