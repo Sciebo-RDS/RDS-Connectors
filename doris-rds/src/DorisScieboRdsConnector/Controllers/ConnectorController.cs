@@ -21,7 +21,7 @@ public class ConnectorController : ControllerBase
         this.configuration = configuration;
     }
 
-    [HttpPost("project")]
+    [HttpPost("metadata/project")]
     public IActionResult CreateProject(PortUserNameWithMetadata request)
     {
         // Generate project identifier
@@ -36,7 +36,7 @@ public class ConnectorController : ControllerBase
         });
     }
 
-    [HttpPatch("project/{projectId}")]
+    [HttpPatch("metadata/project/{projectId}")]
     public IActionResult UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
         // Do nothing? Can we remove this endpoint?
@@ -49,7 +49,7 @@ public class ConnectorController : ControllerBase
         });
     }
 
-    [HttpPost("project/{projectId}/files")]
+    [HttpPost("metadata/project/{projectId}/files")]
     public IActionResult AddFile(string projectId, IFormFile files)
     {
         // Check that project has been created in storage
@@ -63,7 +63,7 @@ public class ConnectorController : ControllerBase
         });
     }
 
-    [HttpPut("project/{projectId}")]
+    [HttpPut("metadata/project/{projectId}")]
     public NoContentResult PublishProject(string projectId, PortUserName request)
     {
         // Check that project has been created in storage

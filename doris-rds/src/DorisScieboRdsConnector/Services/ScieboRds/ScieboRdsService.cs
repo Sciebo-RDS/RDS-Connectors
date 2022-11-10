@@ -21,8 +21,10 @@ namespace DorisScieboRdsConnector.Services.ScieboRds
         public async Task RegisterConnector()
         {
             string url = configuration["ScieboRds:TokenStorageUrl"];
+            string serviceName = configuration["ScieboRds:ConnectorServiceName"];
 
-            if (string.IsNullOrEmpty(url))
+            if (string.IsNullOrEmpty(url) ||
+                string.IsNullOrEmpty(serviceName))
             {
                 return;
             }
@@ -32,7 +34,7 @@ namespace DorisScieboRdsConnector.Services.ScieboRds
                 type = "LoginService",
                 data = new
                 {
-                    servicename = "port-doris-connector",
+                    servicename = serviceName,
                     implements = new[] { "metadata" },
                     loginMode = 0, // credentials
                     credentials = new
