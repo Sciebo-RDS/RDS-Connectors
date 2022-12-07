@@ -27,7 +27,7 @@ public class ConnectorController : ControllerBase
         // Generate project identifier
         // Create storage space/path/bucket based on project identifier
 
-        logger.LogInformation($"CreateProject (POST /project), userId: {request.UserId}, metadata: {request.Metadata}");
+        logger.LogInformation($"CreateProject (POST /metadata/project), userId: {request.UserId}, metadata: {request.Metadata}");
 
         return Ok(new
         {
@@ -41,7 +41,7 @@ public class ConnectorController : ControllerBase
     {
         // Do nothing? Can we remove this endpoint?
 
-        logger.LogInformation($"UpdateMetadata (PATCH project/{projectId}), userId: {request.UserId}, metadata: {request.Metadata}");
+        logger.LogInformation($"UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {request.UserId}, metadata: {request.Metadata}");
 
         return Ok(new 
         { 
@@ -50,12 +50,12 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpPost("metadata/project/{projectId}/files")]
-    public IActionResult AddFile(string projectId, IFormFile files)
+    public IActionResult AddFile(string projectId, AddFileRequest request)
     {
         // Check that project has been created in storage
         // Upload file to storage
 
-        logger.LogInformation($"AddFile (POST project/{projectId}), file: {files.FileName}");
+        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {request.FileName}");
 
         return Ok(new
         {
@@ -70,7 +70,7 @@ public class ConnectorController : ControllerBase
         // Generate RO-Crate manifest with file metadata from storage
         // Post manifest to index server at SND
 
-        logger.LogInformation($"PublishProject (PUT project/{projectId}), userId: {request.UserId}");
+        logger.LogInformation($"PublishProject (PUT /metadata/project/{projectId}), userId: {request.UserId}");
 
         return NoContent();
     }
