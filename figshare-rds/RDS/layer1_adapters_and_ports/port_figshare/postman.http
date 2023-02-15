@@ -1,0 +1,70 @@
+# Exploring the API
+
+# Install following extension in VSCODE:
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# You can run the API request using ctrl + alt + r.
+# And you can generate code snippets using crtl + alt + c
+
+# Get the token from the logs in the layer3-token-storage. You need the access+token
+@token = YOUR_FIGSHARE_API_KEY
+
+###
+GET https://api.figshare.com/v2/account/articles
+Content-Type: application/json
+Authorization: token {{token}}
+
+###
+# Create article
+# Article needs at least a title
+POST https://api.figshare.com/v2/account/articles
+Content-Type: application/json
+Authorization: token {{token}}
+
+{
+    "title": "Untitled"
+}
+
+###
+
+# Delete an article
+DELETE https://api.figshare.com/v2/account/articles/21631871
+Content-Type: application/json
+Authorization: token {{token}}
+
+###
+# initiate new upload, first call to get the location url
+POST https://api.figshare.com/v2/account/articles/21646997/files
+Content-Type: application/json
+Authorization: token {{token}}
+
+{
+    "name": "figshare.png",
+    "'md5": "e1e062e079c380663dcaea30dc674e45",
+    "size": 5286
+}
+
+###
+# initiate new upload, second call to location url to get the upload_url
+GET https://api.figshare.com/v2/account/articles/21646997/files/38378900
+Content-Type: application/json
+Authorization: token {{token}}
+
+
+###
+# upload parts, call to the upload_url
+GET https://fup-eu-west-1.figshare.com/upload/c11d69f1-01bb-4aeb-bd07-f144647a47df
+Content-Type: application/json
+Authorization: token {{token}}
+
+###
+POST https://api.figshare.com/v2/token
+Content-Type: application/json
+
+
+{
+    "grant_type": "authorization_code",
+    "code" : "f3b34ad02a407f9529e32f0aad6df3b76e22e23437c9dc786eab94e3f947065eb62099d6c10e618ec9e0bebccd352af7aed5661f0ab8e62078e3fca74b400015",
+    "client_id" : "46a1e417c546c4a7ddcffe3325192ee79ae64434",
+    "client_secret" : "3ab458f9aa2b0a402b45d5acf8737bca6ee0526e36202fcd8e973791f9551f2761a2abacb490a606440d1587a31372edb310eed8b62fbe7b45e77748c1324b19"
+}

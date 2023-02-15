@@ -1,0 +1,152 @@
+{
+  "consumer": {
+    "name": "PortFigshare"
+  },
+  "provider": {
+    "name": "Figshare"
+  },
+  "interactions": [
+    {
+      "providerState": "access token is valid",
+      "description": "the corresponding user has no depositions",
+      "request": {
+        "method": "GET",
+        "path": "/api/deposit/depositions"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "providerState": "access token is invalid",
+      "description": "the corresponding error message",
+      "request": {
+        "method": "GET",
+        "path": "/api/deposit/depositions"
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "message": "The server could not verify that you are authorized to access the URL requested.\n            You either supplied the wrong credentials (e.g. a bad password),\n            or your browser doesn't understand how to supply the credentials required.",
+          "status": 401
+        }
+      }
+    },
+    {
+      "providerState": "access token is valid",
+      "description": "the corresponding user creates a deposit",
+      "request": {
+        "method": "POST",
+        "path": "/api/deposit/depositions"
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "created": "2016-06-15T16:10:03.319363+00:00",
+          "files": [],
+          "id": 1234,
+          "links": {
+            "discard": "https://figshare.org/api/deposit/depositions/1234/actions/discard",
+            "edit": "https://figshare.org/api/deposit/depositions/1234/actions/edit",
+            "files": "https://figshare.org/api/deposit/depositions/1234/files",
+            "publish": "https://figshare.org/api/deposit/depositions/1234/actions/publish",
+            "newversion": "https://figshare.org/api/deposit/depositions/1234/actions/newversion",
+            "self": "https://figshare.org/api/deposit/depositions/1234"
+          },
+          "metadata": {
+            "prereserve_doi": {
+              "doi": "10.5072/figshare.1234",
+              "recid": 1234
+            }
+          },
+          "modified": "2016-06-15T16:10:03.319371+00:00",
+          "owner": 1,
+          "record_id": 1234,
+          "state": "unsubmitted",
+          "submitted": false,
+          "title": ""
+        }
+      }
+    },
+    {
+      "providerState": "access token is valid",
+      "description": "empty fileslist",
+      "request": {
+        "method": "GET",
+        "path": "/api/deposit/depositions/5/files"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "providerState": "access token is valid",
+      "description": "the deposition holds one file",
+      "request": {
+        "method": "GET",
+        "path": "/api/deposit/depositions/5/files"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "checksum": "48c2ac5daffd8a768c4f8c9c0abf9d7e",
+            "name": "upload_figshare.py",
+            "id": "eb78d50b-ecd4-407a-9520-dfc7a9d1ab2c",
+            "filesize": 12638
+          }
+        ]
+      }
+    },
+    {
+      "providerState": "access token is valid",
+      "description": "the corresponding user has a deposit",
+      "request": {
+        "method": "GET",
+        "path": "/api/deposit/depositions"
+      },
+      "response": {
+        "status": 201,
+        "body": [
+          {
+            "created": "2016-06-15T16:10:03.319363+00:00",
+            "files": [],
+            "id": 1234,
+            "links": {
+              "discard": "https://figshare.org/api/deposit/depositions/1234/actions/discard",
+              "edit": "https://figshare.org/api/deposit/depositions/1234/actions/edit",
+              "files": "https://figshare.org/api/deposit/depositions/1234/files",
+              "publish": "https://figshare.org/api/deposit/depositions/1234/actions/publish",
+              "newversion": "https://figshare.org/api/deposit/depositions/1234/actions/newversion",
+              "self": "https://figshare.org/api/deposit/depositions/1234"
+            },
+            "metadata": {
+              "title": "My first upload",
+              "upload_type": "poster",
+              "description": "This is my first upload",
+              "creators": [
+                {
+                  "name": "Doe, John",
+                  "affiliation": "Figshare"
+                }
+              ]
+            },
+            "modified": "2016-06-15T16:10:03.319371+00:00",
+            "owner": 1,
+            "record_id": 1234,
+            "state": "unsubmitted",
+            "submitted": false,
+            "title": ""
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}
