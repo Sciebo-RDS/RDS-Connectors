@@ -1,0 +1,22 @@
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.0/context",
+        {
+            "@vocab": "https://schema.org/",
+            "dataversecategory": "https://www.research-data-services.org/jsonld/dataversecategory"
+        }
+    ],
+    "@explicit": "true",
+    "@type": "Dataset",
+    "name": {},
+    "description": {},
+    "creator": {
+        "@explicit": "true",
+        "@type": "Person",
+        "name": {},
+        "affiliation": {
+            "@type": "Organization"
+        }
+    },
+    "datePublished": {}
+}

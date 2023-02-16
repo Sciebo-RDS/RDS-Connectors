@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "layer1_port_dataverse.fullname" . }}
+  namespace: {{ .Release.Namespace  }}
+  labels:
+{{ include "layer1_port_dataverse.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+{{ include "layer1_port_dataverse.labels" . | indent 6 }}
+  template:
+    metadata:
+      labels:
+{{ include "layer1_port_dataverse.labels" . | indent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      imagePullSecrets:
+        - name: registry-credentials
+      # volumes:
+      #   - name: dataverse-server-storage
+      #     hostPath: 
+      #       path: /RDS/layer1_adapters_and_ports/port_dataverse/src
+      #       type: Directory
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ template "layer1_port_dataverse.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # volumeMounts:
+          #   - name: dataverse-server-storage
+          #     mountPath: /app
+          #     readOnly: false
+          envFrom:
+          - configMapRef:
+              name: mservice
+          - configMapRef:
+              name: proxy
+          - configMapRef:
+              name: globalenvvar
+          - configMapRef:
+              name: portdataverseconfig
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: http
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

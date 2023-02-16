@@ -723,7 +723,7 @@ class Figshare(object):
 if __name__ == "__main__":
     """Below code will test the code that interfaces the uploads to Figshare
     """
-    api_key = "64ce2700274870bc2c7c26fcc52e2ecbfdd9d0afd6abe69a7f97e7bb4741fd4c91bbf5771178ae243d8ccb048efeb1daffb1dc6ff1823946c5ea34bb4b90433e"
+    api_key = "YOUR API KEY"
     api_address = "https://api.figshare.com/v2"
     figshare = Figshare(api_key=api_key, api_address=api_address)
     article_id = figshare.create_new_article_internal()['entity_id']
