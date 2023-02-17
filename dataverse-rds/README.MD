@@ -81,3 +81,10 @@ The file structure provided is the same as he Zenodo port in the Sciebo-RDS mono
 
 15 directories, 35 files
 ```
+
+## Connecting to the port
+Dataverse does not support OAUTH, therefore the user simply connect RDS to the port with basic authentication using their email as username and their Dataverse api-key as the password.
+The email address / username will be used to setup a Dataverse. The api-key / password will be used as the api-key for authenticating with the Dataverse api.
+
+## TODO
+* Once metadata is working, we still need to make sure metadata is used to update the uploaded data.

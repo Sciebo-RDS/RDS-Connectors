@@ -87,3 +87,6 @@ The file structure provided is the same as he Zenodo port in the Sciebo-RDS mono
 
 15 directories, 37 files
 ```
+
+## TODO
+* Once metadata is working, we still need to make sure metadata is used to update the uploaded data.
