@@ -1,0 +1,60 @@
+# Exploring the API
+
+# Install following extension in VSCODE:
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# You can run the API request using ctrl + alt + r.
+# And you can generate code snippets using crtl + alt + c
+
+# Get the token from the logs in the layer3-token-storage. You need the access+token
+@token = 8fb26dede716a3fff9cc31beca884e8aafe728487c970efb4d905cc1416642f89e153aa01a0b9058f690627b23015712f97c0f8a13e4edf76f145dc7c30db8db
+
+###
+GET https://api.irods.com/v2/account/articles
+Content-Type: application/json
+Authorization: token {{token}}
+
+###
+# Create article
+# Article needs at least a title
+POST https://api.irods.com/v2/account/articles
+Content-Type: application/json
+Authorization: token {{token}}
+
+{
+    "title": "Untitled"
+}
+
+###
+
+# Delete an article
+DELETE https://api.irods.com/v2/account/articles/21631871
+Content-Type: application/json
+Authorization: token {{token}}
+
+###
+# initiate new upload, first call to get the location url
+POST https://api.irods.com/v2/account/articles/21646997/files
+Content-Type: application/json
+Authorization: token {{token}}
+
+{
+    "name": "irods.png",
+    "'md5": "e1e062e079c380663dcaea30dc674e45",
+    "size": 5286
+}
+
+###
+# initiate new upload, second call to location url to get the upload_url
+GET https://api.irods.com/v2/account/articles/21646997/files/38378900
+Content-Type: application/json
+Authorization: token {{token}}
+
+
+###
+# upload parts, call to the upload_url
+GET https://fup-eu-west-1.irods.com/upload/c11d69f1-01bb-4aeb-bd07-f144647a47df
+Content-Type: application/json
+Authorization: token {{token}}
+
+###

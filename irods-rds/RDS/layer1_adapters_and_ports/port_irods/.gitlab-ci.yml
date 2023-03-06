@@ -1,0 +1,27 @@
+.port_irods:
+  variables:
+    IRODS_API_KEY: $GITLAB_IRODS_API_KEY
+    FOLDER: RDS/layer1_adapters_and_ports/port_irods
+
+.tests_port_irods:
+  extends:
+    - .tests
+    - .port_irods
+
+test:port_irods:
+  extends: .tests_port_irods
+  allow_failure: true
+
+build:port_irods:
+  needs:
+    - test:port_irods
+  extends:
+    - .builds
+    - .port_irods
+
+doc:port_irods:
+  needs:
+    - build:port_irods
+  extends:
+    - .documentation
+    - .port_irods

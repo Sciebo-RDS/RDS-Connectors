@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portirodsconfig
+  namespace: {{ .Release.Namespace  }}
+data:
+  IRODS_OAUTH_CLIENT_ID: {{ .Values.environment.OAUTH_CLIENT_ID | quote }}
+  IRODS_ADDRESS: {{ .Values.environment.ADDRESS | quote }}
+  IRODS_API_ADDRESS: {{ .Values.environment.API_ADDRESS | quote }}
+  IRODS_OAUTH_CLIENT_SECRET: {{ .Values.environment.OAUTH_CLIENT_SECRET | quote }}

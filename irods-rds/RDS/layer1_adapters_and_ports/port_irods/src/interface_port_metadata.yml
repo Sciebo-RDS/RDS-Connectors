@@ -1,0 +1,379 @@
+openapi: 3.0.0
+info:
+  title: Interface for Ports used as metadata storage
+  version: '1.0'
+  contact:
+    name: Peter Heiss
+    email: peter.heiss@uni-muenster.de
+  description: |-
+    This api describes the metadata endpoints, which have to be implemented by all ports in the rds system, so the system is enabled to retrieve and set metadata from all different plattforms without knowing them.
+
+    You can imagine, that this api is like an interface that every port has to implement it.
+
+    All endpoints, which are described here, represents the required fields from datacite data scheme. So you can implement more endpoints in your port to support more fields, but this is required to work within rds system as a metadata port.
+servers:
+  - url: 'http://port:3000/metadata'
+paths:
+  '/project/{project-id}':
+    parameters:
+      - schema:
+          type: string
+        name: project-id
+        in: path
+        required: true
+    get:
+      summary: Get all metadata
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+              examples:
+                example-1:
+                  value:
+                    titles:
+                      - title: long title
+                        lang: en
+                    publisher: research publisher gmbh
+                    type:
+                      resourceType: ''
+                      resourceTypeGeneral: Poster
+      description: |-
+        Take a look at the ro-crate example: https://www.researchobject.org/ro-crate/examples.html
+
+        See the examples to see, how to use it.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                userId:
+                  $ref: '#/components/schemas/portusername'
+            examples:
+              example-1:
+                value:
+                  userId: '<port-name>://<username>:<password>'
+                  metadata:
+                    titles: ''
+                    publisher: ''
+                    type: ''
+              example-2:
+                value:
+                  metadata: {}
+                  userId: '<port-name>://<username>:<password>'
+        description: The metadata request object
+    delete:
+      summary: Remove a project from this service
+      responses:
+        '204':
+          description: No Content
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+    patch:
+      summary: Update metadata in service for projectId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+              examples:
+                example-1:
+                  value:
+                    '@context': 'https://w3id.org/ro/crate/1.1/context'
+                    '@graph':
+                      - '@type': CreativeWork
+                        '@id': ro-crate-metadata.json
+                        conformsTo:
+                          '@id': 'https://w3id.org/ro/crate/1.1'
+                        about:
+                          '@id': ./
+                      - '@id': ./
+                        identifier: 'https://doi.org/10.4225/59/59672c09f4a4b'
+                        '@type': Dataset
+                        datePublished: '2017'
+                        name: 'Data files associated with the manuscript:Effects of facilitated family case conferencing for ...'
+                        description: Palliative care planning for nursing home residents with advanced dementia ...
+                        license:
+                          '@id': 'https://creativecommons.org/licenses/by-nc-sa/3.0/au/'
+                      - '@id': 'https://creativecommons.org/licenses/by-nc-sa/3.0/au/'
+                        '@type': CreativeWork
+                        description: 'This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Australia License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/au/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.'
+                        identifier: 'https://creativecommons.org/licenses/by-nc-sa/3.0/au/'
+                        name: Attribution-NonCommercial-ShareAlike 3.0 Australia (CC BY-NC-SA 3.0 AU)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  anyOf:
+                    - type: object
+                    - type: 'null'
+                userId:
+                  $ref: '#/components/schemas/portusername'
+            examples:
+              example-1:
+                value:
+                  userId: '<port-name>://<username>:<password>'
+                  metadata: {}
+        description: The ro crate file itself will be send in metadata field.
+    put:
+      summary: Publishes in service for projectId
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Continue
+      description: |-
+        Publishes the project, if possible.
+        This will disable any future changes to the given projectId.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+        description: ''
+  '/project/{project-id}/files':
+    parameters:
+      - schema:
+          type: string
+        name: project-id
+        in: path
+        required: true
+    get:
+      summary: Get all files
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+    post:
+      summary: Add a file
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+              examples:
+                example-1:
+                  value:
+                    success: true
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+                files:
+                  type: object
+                filename:
+                  type: string
+                  description: Only in active mode
+                folder:
+                  type: string
+                  description: |-
+                    Only in passive mode
+
+                    This is the folder, the user has provided himself.
+            examples:
+              example-1:
+                value:
+                  userId: string
+                  files: {}
+                  filename: string
+                  folder: string
+        description: ''
+    delete:
+      summary: ''
+      responses:
+        '200':
+          description: OK
+  '/project/{project-id}/files/{file-id}':
+    parameters:
+      - schema:
+          type: string
+        name: project-id
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: file-id
+        in: path
+        required: true
+    get:
+      summary: Get specified file
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+      description: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+    patch:
+      summary: ''
+      responses:
+        '200':
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+        description: ''
+    delete:
+      summary: ''
+      responses:
+        '200':
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+        description: ''
+  /project:
+    get:
+      summary: Returns all projects available in the service for user
+      tags: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  $ref: '#/components/schemas/portusername'
+            examples:
+              example-1:
+                value:
+                  userId: string
+    parameters: []
+    post:
+      summary: Add a new project to the service
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                userId:
+                  $ref: '#/components/schemas/portusername'
+components:
+  schemas:
+    portusername:
+      title: username for port
+      type: string
+      description: |-
+        This field is very special, because this helps very much to work with ports. So it has 2 different styles: The session and the normal format. The normal format will be used, when the port have to make the search by themself for example against the token storage.
+        The session format will be used to provide the login credentials through the RDS system directly to the port, without the need to lookup from port. The first part <port-name> symbolize, which port should parse the following credentials and is equal to the name, which set the port by themself in the registration-process at startup. It can be ignored by the port, but should not. The username and password are the user inputs from the web ui provided by token storage.
+        Beware: Do not use a token (e.g. for oauth) as password, because this is used in the token field.
+
+        session format:
+        `<port-name>://<username>:<password>`
+
+        normal format:
+        `<username>`
+    File:
+      title: File
+      type: object
+      properties:
+        id:
+          type: string
+        filename:
+          type: string
+        content:
+          type: string
+    Project:
+      title: Project
+      type: object
+      description: 'Represents a project in the service, which will be connected through the implementation of this port.'
+      properties:
+        projectId:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+    Metadata:
+      title: Metadata
+      type: object
+  securitySchemes:
+    oauth-key:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: ''
+          refreshUrl: ''
+          scopes: {}
+      description: ''

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "layer1_port_irods.fullname" . }}-test-research"
+  labels:
+{{ include "layer1_port_irods.labels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args:  ['{{ include "layer1_port_irods.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never
