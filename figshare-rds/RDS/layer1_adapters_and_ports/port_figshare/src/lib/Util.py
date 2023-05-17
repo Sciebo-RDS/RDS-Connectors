@@ -2,6 +2,8 @@ import inspect
 from functools import wraps
 from lib.upload_figshare import Figshare
 from flask import request, g, current_app, abort
+import os
+import requests
 import logging
 from pyld import jsonld
 import json
@@ -22,6 +24,7 @@ def require_api_key(api_method):
             logger.error(e, exc_info=True)
             req = request.form.to_dict()
         logger.debug("got request data: {}".format(req))
+
         try:
             service, userId, apiKey = Util.parseUserId(req.get("userId"))
         except Exception as e:
@@ -81,6 +84,17 @@ def to_jsonld(metadata):
 
     logger.debug("got metadata {}".format(metadata))
 
+    try:
+        figsharecategory = "{}/{}".format(
+            metadata["upload_type"], metadata["{}_type".format(
+                metadata["upload_type"])]
+        )
+    except:
+        try:
+            figsharecategory = metadata["upload_type"]
+        except:
+            figsharecategory = None
+
     creators = []
 
     try:
@@ -90,6 +104,9 @@ def to_jsonld(metadata):
         creators.append(parse_creator(metadata["creators"]))
 
     jsonld = {figshare_to_jsonld["creators"]: creators}
+
+    if figsharecategory is not None:
+        jsonld[figshare_to_jsonld["figsharecategory"]] = figsharecategory
 
     parameterlist = [
         ("title"),
@@ -175,6 +192,11 @@ def from_jsonld(jsonld_data):
         read_creator(data["creator"])
 
     del data["creator"]
+
+    # if data["upload_type"].find("/") > 0:
+    #     typ, subtyp = tuple(data["upload_type"].split("/", 1))
+    #     data["upload_type"] = typ
+    #     data["{}_type".format(typ)] = subtyp
 
     try:
         del data["@context"]

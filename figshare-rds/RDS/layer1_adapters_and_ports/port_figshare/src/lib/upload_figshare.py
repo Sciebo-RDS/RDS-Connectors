@@ -523,11 +523,12 @@ class Figshare(object):
         if r.status_code != 201:
             return {} if not return_response else r
 
-        log.debug(f"Metadata: {metadata}")
+        log.debug(f"### Metadata: {metadata}")
+        log.debug(f"### Response: {r.json()}")
         if metadata is not None and isinstance(metadata, dict):
             log.debug(metadata)
             return self.change_metadata_in_article_internal(
-                r.json()["id"], metadata, return_response=return_response
+                r.json()["entity_id"], metadata, return_response=return_response
             )
 
         return r.json() if not return_response else r
