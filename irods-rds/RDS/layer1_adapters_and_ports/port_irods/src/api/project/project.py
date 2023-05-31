@@ -60,34 +60,41 @@ def get(project_id):
 
 
 def irods(res):
+    logger.debug(f"### before: {res}")
     logger.debug(f"Entering at api/project/project.py {inspect.getframeinfo(inspect.currentframe()).function}")
     result = {}
+    # {'Affiliation': 'Surf',
+    #         'Description': 'Dit is een test 123',
+    #         'Family_Name': 'Trompert',
+    #         'Given_Name': 'David',
+    #         'Title': 'test123'}
 
-    result["title"] = res["name"]
-    result["description"] = res["description"]
-    creator = res["creator"]
-    result["publication_date"] = res["datePublished"]
+    # result["title"] = res["name"]
+    # result["description"] = res["description"]
+    # creator = res["creator"]
+    # result["publication_date"] = res["datePublished"]
 
-    creator = []
+    # creator = []
 
-    if not isinstance(res["creator"], list):
-        res["creator"] = [res["creator"]]
+    # if not isinstance(res["creator"], list):
+    #     res["creator"] = [res["creator"]]
 
-    for c in res["creator"]:
-        if isinstance(c, str):
-            creator.append({
-                "name": c
-            })
-        else:
-            creator.append(c)
+    # for c in res["creator"]:
+    #     if isinstance(c, str):
+    #         creator.append({
+    #             "name": c
+    #         })
+    #     else:
+    #         creator.append(c)
 
-    result["creators"] = creator
+    # result["creators"] = creator
 
-    if res["irodscategory"].find("/") > 0:
-        typ, subtyp = tuple(res["irodscategory"].split("/", 1))
-        result["upload_type"] = typ
-        result["{}_type".format(typ)] = subtyp
-
+    # if res["irodscategory"].find("/") > 0:
+    #     typ, subtyp = tuple(res["irodscategory"].split("/", 1))
+    #     result["upload_type"] = typ
+    #     result["{}_type".format(typ)] = subtyp
+    # logger.debug(f"### after: {result}")
+    # return result
     return result
 
 
@@ -96,25 +103,28 @@ def post():
     logger.debug(f"Entering at api/project/project.py {inspect.getframeinfo(inspect.currentframe()).function}")
     try:
         req = request.get_json(force=True)
+        logger.debug(f"### req: {req}")
+        
         metadata = req.get("metadata")
+        logger.debug(f"### got metadata: {metadata}")
 
-        logger.debug(f"got metadata: {metadata}")
-
-        if metadata is not None:
-            try:
+        try:
+            if metadata is None:
+                metadata = irods({})
+            else:
                 doc = ROParser(metadata)
                 metadata = irods(doc.getElement(
-                    doc.rootIdentifier, expand=True, clean=True))
-            except Exception as e:
-                logger.error(f"Exception at api/project/project.py {inspect.getframeinfo(inspect.currentframe()).function}")
-                logger.error(e, exc_info=True)
+                    doc.rootIdentifier, expand=True, clean=False))
+        except Exception as e:
+            logger.error(f"Exception at api/project/project.py {inspect.getframeinfo(inspect.currentframe()).function}")
+            logger.error(e, exc_info=True)
 
-        logger.debug("send metadata: {}".format(metadata))
+        logger.debug("### send metadata: {}".format(metadata))
 
         collectionResponse = g.irods.create_new_collection_internal(
             metadata=metadata
         )
-        logger.debug(f"collectionResponse: {collectionResponse}")
+        logger.debug(f"### collectionResponse: {collectionResponse}")
 
         if collectionResponse is not None:
             return jsonify(

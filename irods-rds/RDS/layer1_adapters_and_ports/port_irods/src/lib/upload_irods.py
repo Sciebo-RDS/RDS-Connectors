@@ -5,6 +5,7 @@ from flask import abort
 import functools
 import time
 from irods.session import iRODSSession
+from irods.meta import iRODSMeta
 
 ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
                 'client_server_policy': 'CS_NEG_REQUIRE',
@@ -14,8 +15,8 @@ ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
                 'encryption_salt_size': 8,
                 }
 
-zone = 'irods'
-folder = 'research-surfbasic'
+zone = os.getenv("ZONE", "yoda")
+folder = os.getenv("BASE_FOLDER", 'research-surfbasic')
 
 log = logging.getLogger()
 
@@ -51,7 +52,7 @@ class Irods(object):
         self.irods_api_address = api_address
         if api_address is None:
             self.irods_api_address = os.getenv(
-                "IRODS_API_ADDRESS", "scuba-irods.irods.surfsara.nl"
+                "IRODS_API_ADDRESS", "scuba-yoda.irods.surfsara.nl"
             )
 
         self.api_key = api_key
@@ -135,8 +136,6 @@ class Irods(object):
             f"get collections from irods, path? {path}, metadata? {metadataFilter}"
         )
 
-        available_collections = []
-
         if path is None:
             path = f"/{zone}/home"
 
@@ -147,25 +146,43 @@ class Irods(object):
                             zone=zone,
                             authentication_scheme='pam',
                             **ssl_settings) as session:
+            
+            
             coll = session.collections.get(path)
-            for col in coll.subcollections:
-                    
-                available_collection = {'create_time' : str(col.create_time),
-                                        'data_objects' : [data_object.id for data_object in col.data_objects],
-                                        'id' : col.id,
-                                        'inheritance' : str(col.inheritance),
-                                        'manager' : col.manager.get(col.path).id,
-                                        'metadata' : {key : col.metadata.get_all(key)[0].value for key in col.metadata.keys()},
-                                        'modify_time' : str(col.modify_time),
-                                        'name' : str(col.name),
-                                        'owner_name' : str(col.owner_name),
-                                        'owner_zone' : str(col.owner_zone),
-                                        'path' : str(col.path),
-                                        'subcollections' : [col.path for col in col.subcollections]
-                                        }
-                available_collections.append(available_collection)
 
-        return available_collections
+            if len(coll.subcollections) > 0:
+                available_collections = []
+                for col in coll.subcollections:                       
+                    available_collection = {'create_time' : str(col.create_time),
+                                            'data_objects' : [data_object.id for data_object in col.data_objects],
+                                            'id' : col.id,
+                                            'inheritance' : str(col.inheritance),
+                                            'manager' : col.manager.get(col.path).id,
+                                            'metadata' : {key : col.metadata.get_all(key)[0].value for key in col.metadata.keys()},
+                                            'modify_time' : str(col.modify_time),
+                                            'name' : str(col.name),
+                                            'owner_name' : str(col.owner_name),
+                                            'owner_zone' : str(col.owner_zone),
+                                            'path' : str(col.path),
+                                            'subcollections' : [col.path for col in col.subcollections]
+                                            }
+                    available_collections.append(available_collection)
+                return available_collections
+            else:
+                available_collection = {'create_time' : str(coll.create_time),
+                                            'data_objects' : [data_object.id for data_object in coll.data_objects],
+                                            'id' : coll.id,
+                                            'inheritance' : str(coll.inheritance),
+                                            'manager' : coll.manager.get(coll.path).id,
+                                            'metadata' : {key : coll.metadata.get_all(key)[0].value for key in coll.metadata.keys()},
+                                            'modify_time' : str(coll.modify_time),
+                                            'name' : str(coll.name),
+                                            'owner_name' : str(coll.owner_name),
+                                            'owner_zone' : str(coll.owner_zone),
+                                            'path' : str(coll.path),
+                                            'subcollections' : []
+                                            }
+                return available_collection
             
     def create_new_collection_internal(self, metadata:dict = None):
         """Creates a new untitled collection.
@@ -181,8 +198,11 @@ class Irods(object):
             f"Entering at lib/upload_irods.py {inspect.getframeinfo(inspect.currentframe()).function}")
         log.debug("Create new collection: Starts")
 
-
-        path = f"/{zone}/home/{folder}/untitled-{str(time.time()).replace('.','')}"
+        if metadata is not None and 'Title' in metadata:
+            title = metadata['Title']
+            path = f"/{zone}/home/{folder}/{title}-{str(time.time()).replace('.','')}"
+        else:
+            path = f"/{zone}/home/{folder}/untitled-{str(time.time()).replace('.','')}"
 
         with iRODSSession(host=self.irods_api_address,
                             port=1247,
@@ -212,8 +232,8 @@ class Irods(object):
         log.debug(f"Metadata: {metadata}")
         if metadata is not None and isinstance(metadata, dict):
             log.debug(metadata)
-            return self.change_metadata_in_collection_internal(
-                coll.path, metadata, return_response=True
+            self.change_metadata_in_collection_internal(
+                coll.path, metadata
             )
 
         return available_collection
@@ -330,12 +350,32 @@ class Irods(object):
         log.debug(
             f"Entering at lib/upload_irods.py {inspect.getframeinfo(inspect.currentframe()).function}")
 
-        data = {}
-        data = metadata
+        with iRODSSession(host=self.irods_api_address,
+                            port=1247,
+                            user=self.user,
+                            password=self.api_key,
+                            zone=zone,
+                            authentication_scheme='pam',
+                            **ssl_settings) as session:
+            session.connection_timeout = 300
+            
+            obj = session.collections.get(path)
+            
+            # loop through the metadata and add each item
+            # obj.metadata.set( metadata )
+            for key, value in metadata.items():
+                try:
+                    obj.metadata.remove(key)
+                except:
+                    pass
+                try:
+                    obj.metadata.add(key, value)
+                except:
+                    pass
 
-        log.info(f"send data: {data}")
 
-        raise NotImplementedError()
+        return self.get_collection_internal(path)
+
 
     def publish_collection_internal(self, collection_id, return_response=False):
         """Will publish an collection if it is not under embargo
