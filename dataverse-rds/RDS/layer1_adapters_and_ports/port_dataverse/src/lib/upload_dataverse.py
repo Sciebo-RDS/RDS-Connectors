@@ -101,6 +101,7 @@ class Dataverse(object):
         log.debug("Check token: Starts")
         
         response = cls(api_key, *args, **kwargs).create_new_dataset(return_response=True)
+        
         persistent_id = response.json()['data']['persistentId']
 
         r = cls(api_key, *args, **kwargs).get_dataset(persistent_id=persistent_id, return_response=True)
@@ -110,6 +111,105 @@ class Dataverse(object):
         cls(api_key, *args, **kwargs).remove_dataset(persistent_id)
 
         return r.status_code == 200
+
+    def set_metadata(self, metadata=None):
+        """Set the minimum required metadata if metadata is None
+
+        Returns:
+            dict: metadata for testing purposes
+        """
+        log.debug(f"set_metadata in: {metadata}")
+        if metadata is None:
+            title = "untitled"
+            authorName = "not set"
+            authorAffiliation = "not set"
+            datasetContactEmail = "not@set.com"
+            datasetContactName = "not set"
+            dsDescriptionValue = "not set"
+            subject = "Other"
+            metadata = {
+                    "metadataBlocks": {
+                        "citation": {
+                            "fields": [
+                                {
+                                    "value": title,
+                                    "typeClass": "primitive",
+                                    "multiple": False,
+                                    "typeName": "title"
+                                },
+                                {
+                                    "value": [
+                                        {
+                                            "authorName": {
+                                                "value": authorName,
+                                                "typeClass": "primitive",
+                                                "multiple": False,
+                                                "typeName": "authorName"
+                                            },
+                                            "authorAffiliation": {
+                                                "value": authorAffiliation,
+                                                "typeClass": "primitive",
+                                                "multiple": False,
+                                                "typeName": "authorAffiliation"
+                                            }
+                                        }
+                                    ],
+                                    "typeClass": "compound",
+                                    "multiple": True,
+                                    "typeName": "author"
+                                },
+                                {
+                                    "value": [
+                                        {
+                                            "datasetContactEmail": {
+                                                "typeClass": "primitive",
+                                                "multiple": False,
+                                                "typeName": "datasetContactEmail",
+                                                "value": datasetContactEmail
+                                            },
+                                            "datasetContactName": {
+                                                "typeClass": "primitive",
+                                                "multiple": False,
+                                                "typeName": "datasetContactName",
+                                                "value": datasetContactName
+                                            }
+                                        }
+                                    ],
+                                    "typeClass": "compound",
+                                    "multiple": True,
+                                    "typeName": "datasetContact"
+                                },
+                                {
+                                    "value": [
+                                        {
+                                            "dsDescriptionValue": {
+                                                "value": dsDescriptionValue,
+                                                "multiple": False,
+                                                "typeClass": "primitive",
+                                                "typeName": "dsDescriptionValue"
+                                            }
+                                        }
+                                    ],
+                                    "typeClass": "compound",
+                                    "multiple": True,
+                                    "typeName": "dsDescription"
+                                },
+                                {
+                                    "value": [
+                                        subject
+                                    ],
+                                    "typeClass": "controlledVocabulary",
+                                    "multiple": True,
+                                    "typeName": "subject"
+                                }
+                            ],
+                            "displayName": "Citation Metadata"
+                        }
+                    }
+                }
+        log.debug(f"set_metadata out: {metadata}")
+        return metadata
+
 
     def get_user_dataverse(self):
         """This method will return a dataverse name based on the userId.
@@ -123,8 +223,8 @@ class Dataverse(object):
         Returns:
             _str: name of the dataverse
         """
-        # parent dataverse at demo.dataverse.org is "demo"
-        parent_dataverse = "demo"
+        # parent dataverse at demo.dataverse.nl is "root"
+        parent_dataverse = "surf"
 
         # get userid
         try:
@@ -165,7 +265,7 @@ class Dataverse(object):
         url = f"{self.dataverse_api_address}/dataverses/{parent_dataverse}"
         payload = json.dumps(dataverse)
         r = requests.request("POST", url, headers=headers, data=payload)
-        print(r.json())
+        
         return dataverse_user
 
 
@@ -275,6 +375,7 @@ class Dataverse(object):
         log.debug(
             f"Entering at lib/upload_dataverse.py {inspect.getframeinfo(inspect.currentframe()).function}")
         log.debug("Create new dataset: Starts")
+        log.debug(f"### metadata: {metadata}")
 
         user_dataverse = self.get_user_dataverse()
 
@@ -287,119 +388,14 @@ class Dataverse(object):
         url = f"{self.dataverse_api_address}/dataverses/{user_dataverse}/datasets"
 
         # use metadata here to set values of below variables els:
-        try:
-            title = metadata["metadata"]["title"]
-        except:
-            title = "untitled"
-        try:
-            authorName = metadata["metadata"]["creators"][0]["name"]
-        except:
-            authorName = "not set"
-        try:
-            authorAffiliation = metadata["metadata"]["creators"][0]["affiliations"]
-        except:
-            authorAffiliation = "not set"
-        try:
-            datasetContactEmail = metadata["metadata"]["email"]
-        except:
-            datasetContactEmail = "not@set.com"
-        try:
-            datasetContactName = metadata["metadata"]["contactname"]
-        except:
-            datasetContactName = "not set"
-        try:
-            dsDescriptionValue = metadata["metadata"]["description"]
-        except:
-            dsDescriptionValue = "not set"
-        subject = "Other"
-        dataset = {
-            "datasetVersion": {
-                "metadataBlocks": {
-                    "citation": {
-                        "fields": [
-                            {
-                                "value": title,
-                                "typeClass": "primitive",
-                                "multiple": False,
-                                "typeName": "title"
-                            },
-                            {
-                                "value": [
-                                    {
-                                        "authorName": {
-                                            "value": authorName,
-                                            "typeClass": "primitive",
-                                            "multiple": False,
-                                            "typeName": "authorName"
-                                        },
-                                        "authorAffiliation": {
-                                            "value": authorAffiliation,
-                                            "typeClass": "primitive",
-                                            "multiple": False,
-                                            "typeName": "authorAffiliation"
-                                        }
-                                    }
-                                ],
-                                "typeClass": "compound",
-                                "multiple": True,
-                                "typeName": "author"
-                            },
-                            {
-                                "value": [
-                                    {
-                                        "datasetContactEmail": {
-                                            "typeClass": "primitive",
-                                            "multiple": False,
-                                            "typeName": "datasetContactEmail",
-                                            "value": datasetContactEmail
-                                        },
-                                        "datasetContactName": {
-                                            "typeClass": "primitive",
-                                            "multiple": False,
-                                            "typeName": "datasetContactName",
-                                            "value": datasetContactName
-                                        }
-                                    }
-                                ],
-                                "typeClass": "compound",
-                                "multiple": True,
-                                "typeName": "datasetContact"
-                            },
-                            {
-                                "value": [
-                                    {
-                                        "dsDescriptionValue": {
-                                            "value": dsDescriptionValue,
-                                            "multiple": False,
-                                            "typeClass": "primitive",
-                                            "typeName": "dsDescriptionValue"
-                                        }
-                                    }
-                                ],
-                                "typeClass": "compound",
-                                "multiple": True,
-                                "typeName": "dsDescription"
-                            },
-                            {
-                                "value": [
-                                    subject
-                                ],
-                                "typeClass": "controlledVocabulary",
-                                "multiple": True,
-                                "typeName": "subject"
-                            }
-                        ],
-                        "displayName": "Citation Metadata"
-                    }
-                }
-            }
-        }
-
-        payload = json.dumps(dataset)
+        
+        metadata = self.set_metadata(metadata)
+        metadata = { 'datasetVersion': metadata }
+        payload = json.dumps(metadata)
         r = requests.request("POST", url, headers=headers, data=payload)
 
         log.debug(
-            f"Create new datasets: Status Code: {r.json()['status']}")
+            f"Create new datasets: Status Code: {r.json()}")
 
         return r.json() if not return_response else r
 
@@ -529,22 +525,12 @@ class Dataverse(object):
             persistent_id (int): id of the dataset
             return_response (bool, optional): Set to True will return the API response. Defaults to False.
             metadata (dict): A data-dict json-like object
-                ```python
-                Example: data = {
-                    'metadata': {
-                        'title': 'My first upload',
-                        'upload_type': 'poster',
-                        'description': 'This is my first upload',
-                        'creators': [{'name': 'Doe, John',
-                                    'affiliation': 'Dataverse'}]
-                    }
-                }
-                ```
+
         Returns:
             object: response of the PUT request to the datasets endpoint
         """
         log.debug(
-            f"Entering at lib/upload_dataverse.py {inspect.getframeinfo(inspect.currentframe()).function}")
+            f"### Entering at lib/upload_dataverse.py {inspect.getframeinfo(inspect.currentframe()).function}")
 
         headers = {
             'X-Dataverse-key': self.api_key,
@@ -553,114 +539,19 @@ class Dataverse(object):
 
         url = f"{self.dataverse_api_address}/datasets/:persistentId/versions/:draft?persistentId={persistent_id}"
 
-        # use metadata here to set values of below variables els:
-        try:
-            title = metadata["metadata"]["title"]
-        except:
-            title = "untitled"
-        try:
-            authorName = metadata["metadata"]["creators"][0]["name"]
-        except:
-            authorName = "not set"
-        try:
-            authorAffiliation = metadata["metadata"]["creators"][0]["affiliations"]
-        except:
-            authorAffiliation = "not set"
-        try:
-            datasetContactEmail = metadata["metadata"]["email"]
-        except:
-            datasetContactEmail = "not@set.com"
-        try:
-            datasetContactName = metadata["metadata"]["contactnamee"]
-        except:
-            datasetContactName = "not set"
-        try:
-            dsDescriptionValue = metadata["metadata"]["description"]
-        except:
-            dsDescriptionValue = "not set"
-        subject = "Other"
-        dataset = {
-            "metadataBlocks": {
-                "citation": {
-                    "fields": [
-                        {
-                            "value": title,
-                            "typeClass": "primitive",
-                            "multiple": False,
-                            "typeName": "title"
-                        },
-                        {
-                            "value": [
-                                {
-                                    "authorName": {
-                                        "value": authorName,
-                                        "typeClass": "primitive",
-                                        "multiple": False,
-                                        "typeName": "authorName"
-                                    },
-                                    "authorAffiliation": {
-                                        "value": authorAffiliation,
-                                        "typeClass": "primitive",
-                                        "multiple": False,
-                                        "typeName": "authorAffiliation"
-                                    }
-                                }
-                            ],
-                            "typeClass": "compound",
-                            "multiple": True,
-                            "typeName": "author"
-                        },
-                        {
-                            "value": [
-                                {
-                                    "datasetContactEmail": {
-                                        "typeClass": "primitive",
-                                        "multiple": False,
-                                        "typeName": "datasetContactEmail",
-                                        "value": datasetContactEmail
-                                    },
-                                    "datasetContactName": {
-                                        "typeClass": "primitive",
-                                        "multiple": False,
-                                        "typeName": "datasetContactName",
-                                        "value": datasetContactName
-                                    }
-                                }
-                            ],
-                            "typeClass": "compound",
-                            "multiple": True,
-                            "typeName": "datasetContact"
-                        },
-                        {
-                            "value": [
-                                {
-                                    "dsDescriptionValue": {
-                                        "value": dsDescriptionValue,
-                                        "multiple": False,
-                                        "typeClass": "primitive",
-                                        "typeName": "dsDescriptionValue"
-                                    }
-                                }
-                            ],
-                            "typeClass": "compound",
-                            "multiple": True,
-                            "typeName": "dsDescription"
-                        },
-                        {
-                            "value": [
-                                subject
-                            ],
-                            "typeClass": "controlledVocabulary",
-                            "multiple": True,
-                            "typeName": "subject"
-                        }
-                    ],
-                    "displayName": "Citation Metadata"
-                }
-            }
-        }
-        payload = json.dumps(dataset)
+        log.debug(f"### metadata change_metadata_in_dataset_internal: {metadata}")
+
+        
+        metadata = self.set_metadata(metadata)
+        print(metadata)
+        payload = json.dumps(metadata)
+
+        log.debug(f"### payload: {payload}")
+
         r = requests.request("PUT", url, headers=headers, data=payload)
+        
+        log.debug(f"### r: {r}") 
+
         return r.status_code == 204 if not return_response else r
 
     def publish_dataset_internal(self, persistent_id, return_response=False):
@@ -748,10 +639,12 @@ if __name__ == "__main__":
         "DATAVERSE_API_ADDRESS",
         "https://demo.dataverse.org/api"
     )
-
+    api_key = 'DATAVERSE_API_KEY'
+    api_address = "https://demo.dataverse.nl/api"
     dataverse = Dataverse(api_key=api_key, api_address=api_address)
 
     print("### check token ###")
+    print(api_address)
     check = dataverse.check_token(api_key)
     print(check)
     if check:
@@ -764,12 +657,12 @@ if __name__ == "__main__":
         persistent_id = dataset.json()['data']['persistentId']
         print(persistent_id)
 
-        print("### upload a file with None as persistent_id ###")
-        file_path = "../dataverse.png"
-        r = dataverse.upload_new_file_to_dataset(
-            persistent_id="None", path_to_file=file_path, file=None, return_response=True, test=True)
-        print(r)
-        print(r.text)
+        # print("### upload a file with None as persistent_id ###")
+        # file_path = "../dataverse.png"
+        # r = dataverse.upload_new_file_to_dataset(
+        #     persistent_id="None", path_to_file=file_path, file=None, return_response=True, test=True)
+        # print(r)
+        # print(r.text)
 
         print("### Get dataset info ###")
         r = dataverse.get_dataset(persistent_id=persistent_id, return_response=True)
@@ -778,18 +671,24 @@ if __name__ == "__main__":
         id = r.json()['data']['id']
 
 
-        print("### Get dataset files ###")
-        r = dataverse.get_files_from_dataset(persistent_id=persistent_id)
-        print(r)
+        # print("### Get dataset files ###")
+        # r = dataverse.get_files_from_dataset(persistent_id=persistent_id)
+        # print(r)
 
         print("### Update dataset metadata ###")
         data = {
-            'metadata': {
-                'title': 'My first upload',
-                'upload_type': 'poster',
-                'description': 'This is my first upload',
-                'creators': [{'name': 'Doe, John',
-                            'affiliation': 'Dataverse'}]
+            "metadataBlocks": {
+                "citation": {
+                    "fields": [
+                        {
+                            "value": "Test",
+                            "typeClass": "primitive",
+                            "multiple": False,
+                            "typeName": "title"
+                        }
+                    ],
+                    "displayName": "Citation Metadata"
+                }
             }
         }
         r = dataverse.change_metadata_in_dataset_internal(
@@ -797,18 +696,18 @@ if __name__ == "__main__":
         print(r)
         print(r.text)
 
-        print("### Get latest persistent_id ###")
-        print(dataverse.get_latest_persistent_id())
-        print(f"Should be the same as: {persistent_id}")
+        # print("### Get latest persistent_id ###")
+        # print(dataverse.get_latest_persistent_id())
+        # print(f"Should be the same as: {persistent_id}")
 
 
-        print("### Get persistent_id with id ###")
-        print(dataverse.get_persistent_id_with_id(id))
-        print(f"Should be the same as: {persistent_id}")
+        # print("### Get persistent_id with id ###")
+        # print(dataverse.get_persistent_id_with_id(id))
+        # print(f"Should be the same as: {persistent_id}")
 
 
-        print("### Publish dataset ###")
-        print("Not executed as normal users cannot remove published datasets")
+        # print("### Publish dataset ###")
+        # print("Not executed as normal users cannot remove published datasets")
         # r = dataverse.publish_dataset_internal(persistent_id, return_response=True)
         # print(r)
         # print(r.text)
@@ -817,7 +716,7 @@ if __name__ == "__main__":
         r = dataverse.delete_all_files_from_dataset(persistent_id=persistent_id)
         print(r)
 
-        print("### Remove dataset ###")
-        r = dataverse.remove_dataset(persistent_id=persistent_id, return_response=True)
-        print(r)
-        print(r.text)
+        # print("### Remove dataset ###")
+        # r = dataverse.remove_dataset(persistent_id=persistent_id, return_response=True)
+        # print(r)
+        # print(r.text)

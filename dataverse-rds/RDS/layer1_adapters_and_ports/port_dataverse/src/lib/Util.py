@@ -1,3 +1,4 @@
+import base64
 import inspect
 from functools import wraps
 from lib.upload_dataverse import Dataverse
@@ -8,6 +9,30 @@ import json
 from RDS import Util
 
 logger = logging.getLogger()
+
+
+def encode_string(s):
+    """Will do base64 encoding of string.
+
+    Args:
+        path (str): human readable file or folder path
+
+    Returns:
+        _str: base64 version of the file or folder path
+    """
+    return base64.b64encode(bytes(s, 'utf-8')).decode('utf-8')
+
+
+def decode_string(s):
+    """Will do base64 decoding of string.
+
+    Args:
+        path (str): base64 version of the file or folder path
+
+    Returns:
+        str: human readable file or folder path
+    """
+    return base64.b64decode(bytes(s, 'utf-8')).decode('utf-8')
 
 
 def require_api_key(api_method):

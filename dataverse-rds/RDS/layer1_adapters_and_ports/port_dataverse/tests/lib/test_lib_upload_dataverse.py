@@ -28,7 +28,7 @@ except Exception as e:
 
 api_address = os.getenv(
     "DATAVERSE_API_ADDRESS",
-    "https://demo.dataverse.org/api"
+    "https://demo.dataverse.nl/api"
 )
 
 # adding some sleep time between tests as to not overwhelm the dataverse api.
@@ -131,23 +131,19 @@ class TestDataverseMethodsNew(unittest.TestCase):
         # arrange
         sleep(sleep_time)
         dataverse = Dataverse(api_key=api_key, api_address=api_address)
-        id = dataverse.create_new_dataset()['data']['id']
-        persistent_id = dataverse.get_persistent_id_with_id(id)
-        metadata = {
-            'metadata': {
-                'title': 'My first upload',
-                'upload_type': 'poster',
-                'description': 'This is my first upload',
-                'creators': [{'name': 'Doe, John',
-                            'affiliation': 'Dataverse'}]
-            }
-        }
-
+        persistent_id = dataverse.create_new_dataset()['data']['persistentId']
+        metadata = dataverse.set_metadata()
+        log.debug(f"############### meta: {metadata}")
+        for item in metadata['metadataBlocks']['citation']['fields']:
+            if item['typeName'] == 'title':
+                item['value'] = 'My first upload'
         # act
         response = dataverse.change_metadata_in_dataset(
-            persistent_id, metadata, return_response=True)
+            persistent_id=persistent_id, metadata=metadata, return_response=True).json()
+        log.debug(f"###  response: {response}")
         
         dataset = dataverse.get_dataset(persistent_id=persistent_id, return_response=True)
+        log.debug(dataset.json())
 
         # # cleanup
         dataverse.remove_dataset(persistent_id)
@@ -160,7 +156,7 @@ class TestDataverseMethodsNew(unittest.TestCase):
             if field['typeName'] == "title":
                 title = field['value']
         self.assertEqual(title, "My first upload")
-        self.assertEqual(response.status_code, 200)
+
 
     @unittest.skip
     def test_publish_dataset(self):
