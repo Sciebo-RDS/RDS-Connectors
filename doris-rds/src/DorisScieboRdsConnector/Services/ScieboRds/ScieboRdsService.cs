@@ -20,8 +20,8 @@ namespace DorisScieboRdsConnector.Services.ScieboRds
 
         public async Task RegisterConnector()
         {
-            string url = configuration["ScieboRds:TokenStorageUrl"];
-            string serviceName = configuration["ScieboRds:ConnectorServiceName"];
+            string? url = configuration["ScieboRds:TokenStorageUrl"];
+            string? serviceName = configuration["ScieboRds:ConnectorServiceName"];
 
             if (string.IsNullOrEmpty(url) ||
                 string.IsNullOrEmpty(serviceName))
