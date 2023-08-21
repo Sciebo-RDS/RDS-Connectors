@@ -65,13 +65,14 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpPost("metadata/project/{projectId}/files")]
-    public IActionResult AddFile([FromRoute]string projectId, [FromForm]AddFileRequest request)
+    public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
     {
-        // Check that project has been created in storage
-        // Upload file to storage
-
-        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {request.FileName}");
-        this.storageService.AddFile(projectId, request.FileName, request.Files.OpenReadStream());
+        //TODO: Check that project has been created in storage
+        
+        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}");
+        
+        // Upload file to s3 storage
+        this.storageService.AddFile(projectId, fileName, files.OpenReadStream());
 
         return Ok(new
         {
