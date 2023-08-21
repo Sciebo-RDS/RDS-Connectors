@@ -8,10 +8,27 @@ services:
       - Domain=test.se
       - ScieboRds__TokenStorageUrl
       - ScieboRds__ConnectorServiceName=port-doris
-      - S3__Url=https://test.se
-      - S3__AccessKey=key
-      - S3__SecretKey=secret
+      - S3__Url=minio:9000
+      - S3__AccessKey=user1
+      - S3__SecretKey=user1password
       - ManifestIndex__Url=https://snd-storage-metadata-index-test-snd-dev.apps.k8s.gu.se
       - ManifestIndex__ApiKey=key
     ports:
       - 8080:80
+  minios3test:
+    image: quay.io/minio/minio
+    hostname: minio
+    command: server --console-address ":9001" /data
+    volumes:
+      - ./data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3

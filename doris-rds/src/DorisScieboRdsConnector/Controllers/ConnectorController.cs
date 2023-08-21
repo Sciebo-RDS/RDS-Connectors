@@ -1,4 +1,5 @@
 using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -14,11 +15,16 @@ public class ConnectorController : ControllerBase
 {
     private readonly ILogger logger;
     private readonly IConfiguration configuration;
+    private IStorageService storageService;
 
     public ConnectorController(ILogger<ConnectorController> logger, IConfiguration configuration)
     {
         this.logger = logger;
         this.configuration = configuration;
+        this.storageService = new S3StorageService(configuration["S3:Url"], configuration["S3:AccessKey"], configuration["S3:SecretKey"], false, this.logger);
+        logger.LogInformation($"🪣 S3:Url {configuration["S3:Url"]}");
+        logger.LogInformation($"🪣 S3:AccessKey {configuration["S3:AccessKey"]}");
+        logger.LogInformation($"🪣 S3:SecretKey {configuration["S3:SecretKey"]}");
     }
 
     [HttpPost("metadata/project")]
@@ -30,10 +36,15 @@ public class ConnectorController : ControllerBase
 
 
         logger.LogInformation($"CreateProject (POST /metadata/project), userId: {request.UserId}, metadata: {request.Metadata}");
+ 
+        var projectId = Guid.NewGuid().ToString();
+        logger.LogInformation($"🪣 call SetupProject for projectId {projectId}");
+        //this.storageService.SetupProject(projectId);
+        this.storageService.SetupProject("test");
 
         return Ok(new
         {
-            ProjectId = Guid.NewGuid().ToString(), // Is UUID the right choice here? Or something more human readable?
+            ProjectId = projectId, // Is UUID the right choice here? Or something more human readable?
             Metadata = new JsonObject() // How is this used?
         });
     }
@@ -54,12 +65,13 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpPost("metadata/project/{projectId}/files")]
-    public IActionResult AddFile(string projectId, AddFileRequest request)
+    public IActionResult AddFile([FromRoute]string projectId, [FromForm]AddFileRequest request)
     {
         // Check that project has been created in storage
         // Upload file to storage
 
         logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {request.FileName}");
+        this.storageService.AddFile(projectId, request.FileName, request.Files.OpenReadStream());
 
         return Ok(new
         {

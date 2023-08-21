@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 using DorisScieboRdsConnector.Models;
@@ -97,6 +98,7 @@ public static class RoCrateHelper
             {
                 ["@type"] = "File",
                 ["@id"] = file.Id,
+                ["additionalType"] = new JsonArray("data")
             };
 
             if (file.ContentSize != null) fileObject["contentSize"] = file.ContentSize;
@@ -116,12 +118,10 @@ public static class RoCrateHelper
             ["hasPart"] = hasPart
         });
 
-        var roCrate = new JsonObject
+        return new JsonObject
         {
             ["@context"] = "https://w3id.org/ro/crate/1.1/context",
             ["@graph"] = graph
         };
-
-        return roCrate;
     }
 }
