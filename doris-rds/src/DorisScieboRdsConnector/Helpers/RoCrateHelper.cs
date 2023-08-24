@@ -98,7 +98,7 @@ public static class RoCrateHelper
             {
                 ["@type"] = "File",
                 ["@id"] = file.Id,
-                ["additionalType"] = new JsonArray("data")
+                ["additionalType"] = new JsonArray("Data")
             };
 
             if (file.ContentSize != null) fileObject["contentSize"] = file.ContentSize;

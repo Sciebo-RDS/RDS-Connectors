@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Minio;
 using System;
 using System.Text.Json.Nodes;
 
@@ -21,10 +22,12 @@ public class ConnectorController : ControllerBase
     {
         this.logger = logger;
         this.configuration = configuration;
-        this.storageService = new S3StorageService(configuration["S3:Url"], configuration["S3:AccessKey"], configuration["S3:SecretKey"], false, this.logger);
-        logger.LogInformation($"🪣 S3:Url {configuration["S3:Url"]}");
-        logger.LogInformation($"🪣 S3:AccessKey {configuration["S3:AccessKey"]}");
-        logger.LogInformation($"🪣 S3:SecretKey {configuration["S3:SecretKey"]}");
+        MinioClient minio = new MinioClient()
+                            .WithEndpoint(configuration["S3:Url"])
+                            .WithCredentials(configuration["S3:AccessKey"], configuration["S3:SecretKey"])
+                            .WithSSL(false)
+                            .Build();
+        this.storageService = new S3StorageService(minio, this.logger);
     }
 
     [HttpPost("metadata/project")]
@@ -33,14 +36,12 @@ public class ConnectorController : ControllerBase
         // Generate project identifier
         // Create storage space/path/bucket based on project identifier
         // Do we need tagging or something similar when creating the bucket?
-
-
         logger.LogInformation($"CreateProject (POST /metadata/project), userId: {request.UserId}, metadata: {request.Metadata}");
  
         var projectId = Guid.NewGuid().ToString();
+        
         logger.LogInformation($"🪣 call SetupProject for projectId {projectId}");
-        //this.storageService.SetupProject(projectId);
-        this.storageService.SetupProject("test");
+        this.storageService.SetupProject(projectId);
 
         return Ok(new
         {
@@ -48,7 +49,7 @@ public class ConnectorController : ControllerBase
             Metadata = new JsonObject() // How is this used?
         });
     }
-
+    
     [HttpPatch("metadata/project/{projectId}")]
     public IActionResult UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
@@ -64,22 +65,6 @@ public class ConnectorController : ControllerBase
         });
     }
 
-    [HttpPost("metadata/project/{projectId}/files")]
-    public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
-    {
-        //TODO: Check that project has been created in storage
-        
-        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}");
-        
-        // Upload file to s3 storage
-        this.storageService.AddFile(projectId, fileName, files.OpenReadStream());
-
-        return Ok(new
-        {
-            Success = true
-        });
-    }
-
     [HttpPut("metadata/project/{projectId}")]
     public NoContentResult PublishProject(string projectId, PortUserName request)
     {
@@ -90,5 +75,37 @@ public class ConnectorController : ControllerBase
         logger.LogInformation($"PublishProject (PUT /metadata/project/{projectId}), userId: {request.UserId}");
 
         return NoContent();
+    }
+
+    [HttpPost("metadata/project/{projectId}/files")]
+    public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
+    {
+        //TODO: Check that project has been created in storage
+        
+        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}");
+        
+        // Upload file to s3 storage
+        this.storageService.AddFile(projectId, fileName, files.ContentType, files.OpenReadStream());
+
+        return Ok(new
+        {
+            Success = true
+        });
+    }
+
+    [HttpGet("metadata/project/{projectId}/files")]
+    public IActionResult GetFiles([FromRoute]string projectId)
+    {
+        //TODO: Check that project has been created in storage
+        
+        logger.LogInformation($"GetFiles (GET /metadata/project/{projectId}), projectId: {projectId}");
+        
+        // Get file to s3 storage
+        var files = this.storageService.GetFiles(projectId);
+
+        return Ok(new
+        {
+            Files = files
+        });
     }
 }

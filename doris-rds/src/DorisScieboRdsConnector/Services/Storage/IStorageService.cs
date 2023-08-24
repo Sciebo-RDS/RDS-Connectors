@@ -9,7 +9,9 @@ public interface IStorageService
 {
     Task SetupProject(string projectId);
 
-    Task AddFile(string projectId, string fileName, Stream filedata);
+    Task<bool> ProjectExist(string projectId);
 
-    IAsyncEnumerable<Models.File> GetFiles(string projectId);
+    Task AddFile(string projectId, string fileName, string contentType, Stream filedata);
+
+    Task<IEnumerable<Models.File>> GetFiles(string projectId);
 }
