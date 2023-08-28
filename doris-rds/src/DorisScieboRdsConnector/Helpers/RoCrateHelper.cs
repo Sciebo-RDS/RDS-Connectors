@@ -101,11 +101,10 @@ public static class RoCrateHelper
                 ["additionalType"] = new JsonArray("Data")
             };
 
-            if (file.ContentSize != null) fileObject["contentSize"] = file.ContentSize;
-            if (file.DateCreated != null) fileObject["dateCreated"] = file.DateCreated;
+            if (file.ContentSize != null) fileObject["contentSize"] = file.ContentSize.ToString();
             if (file.DateModified != null) fileObject["dateModified"] = file.DateModified;
             if (file.EncodingFormat != null) fileObject["encodingFormat"] = file.EncodingFormat;
-            if (file.Sha256 != null) fileObject["sha256"] = file.Sha256;
+            //if (file.Md5 != null) fileObject["sha256"] = file.Md5;
             if (file.Url != null) fileObject["url"] = file.Url.AbsoluteUri;
 
             graph.Add(fileObject);
@@ -121,6 +120,7 @@ public static class RoCrateHelper
         return new JsonObject
         {
             ["@context"] = "https://w3id.org/ro/crate/1.1/context",
+            ["spdx"] = "http://spdx.org/rdf/terms#",
             ["@graph"] = graph
         };
     }

@@ -1,18 +1,15 @@
-﻿using System.Collections.Generic;
+﻿namespace DorisScieboRdsConnector.Services.Storage;
+
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-
-namespace DorisScieboRdsConnector.Services.Storage;
-
 using Minio;
 using Minio.DataModel;
 using Minio.DataModel.Tags;
-using Minio.DataModel.ILM;
+using System.Reactive.Linq;
 using Minio.Exceptions;
 using System;
-using System.Collections;
 using Microsoft.Extensions.Logging;
-using System.Runtime.CompilerServices;
 
 public class S3StorageService : IStorageService
 {
@@ -44,32 +41,39 @@ public class S3StorageService : IStorageService
     {
         var listArgs = new ListObjectsArgs()
                 .WithBucket(projectId)
-                .WithRecursive(true)
                 .WithRecursive(true);
-        var observable = minio.ListObjectsAsync(listArgs);
+        IObservable<Item> observable = this.minio.ListObjectsAsync(listArgs);
         
         var fileList = new List<Models.File>();
         
         IDisposable subscription = observable.Subscribe(
-            item => fileList.Add(new Models.File(
-                item.Key, 
-                item.Size, 
-                item.LastModifiedDateTime, 
-                item.LastModifiedDateTime,
-                "text/plain", 
-                item.ETag,
-                new Uri("https://a.now"))),
+            async (item) => {
+                StatObjectArgs statObjectArgs = new StatObjectArgs()
+                                                        .WithBucket(projectId)
+                                                        .WithObject(item.Key);
+                var stat = await this.minio.StatObjectAsync(statObjectArgs);
+                
+                fileList.Add(new Models.File(
+                    item.Key, 
+                    item.Size, 
+                    item.LastModifiedDateTime,
+                    stat.ContentType,
+                    item.ETag,
+                    new Uri("https://a.now"))
+                );
+            },
             ex => this.logger.LogError($"🪣 OnError: {ex}"),
             () => this.logger.LogInformation($"🪣 Listed all objects in bucket {projectId}\n"));
         
+        observable.Wait();
+
         return fileList;
-        throw new System.NotImplementedException();
     }
 
     public async Task SetupProject(string projectId)
     {
         logger.LogInformation($"🪣 START SetupProject with {projectId}");
-        
+
         IDictionary<string, string> tags = new Dictionary<string, string>();
         tags.Add(new KeyValuePair<string, string>("source", "doris-connector"));
         tags.Add(new KeyValuePair<string, string>("projectId", projectId));

@@ -1,11 +1,13 @@
 using DorisScieboRdsConnector.Models;
 using DorisScieboRdsConnector.Services.Storage;
+using DorisScieboRdsConnector.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minio;
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
 namespace DorisScieboRdsConnector.Controllers;
@@ -16,7 +18,7 @@ public class ConnectorController : ControllerBase
 {
     private readonly ILogger logger;
     private readonly IConfiguration configuration;
-    private IStorageService storageService;
+    private readonly IStorageService storageService;
 
     public ConnectorController(ILogger<ConnectorController> logger, IConfiguration configuration)
     {
@@ -81,6 +83,12 @@ public class ConnectorController : ControllerBase
     public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
     {
         //TODO: Check that project has been created in storage
+        if(this.storageService.ProjectExist(projectId).Result == false){
+            return NotFound(new {
+                Success = false,
+                Message = $"Project {projectId} does not have a storage bucket"
+            });
+        }
         
         logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}");
         
@@ -102,10 +110,10 @@ public class ConnectorController : ControllerBase
         
         // Get file to s3 storage
         var files = this.storageService.GetFiles(projectId);
-
+        var fileList = new List<Models.File>();
         return Ok(new
         {
-            Files = files
+            Files = files.Result
         });
     }
 }
