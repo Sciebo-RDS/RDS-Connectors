@@ -61,9 +61,13 @@ public class ConnectorController : ControllerBase
 
         logger.LogInformation($"UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {request.UserId}, metadata: {request.Metadata}");
 
+        var files = this.storageService.GetFiles(projectId);
+        //var manifest = RoCrateHelper.GenerateRoCrateManifest(projectId, this.configuration["Domain"], "usertmp", files);
+
         return Ok(new 
         { 
-            Metadata = new JsonObject() 
+            Metadata = new JsonObject(),
+            User = request.GetUserName() 
         });
     }
 
@@ -74,15 +78,27 @@ public class ConnectorController : ControllerBase
         // Generate RO-Crate manifest with file metadata from storage and possibly project label from Describo manifest
         // Post manifest to index server at SND
 
+        // Get file to s3 storage
+        var files = this.storageService.GetFiles(projectId);
+
         logger.LogInformation($"PublishProject (PUT /metadata/project/{projectId}), userId: {request.UserId}");
 
         return NoContent();
     }
 
+    /// <summary>
+    /// Handle upload of each file via the connector
+    /// for the DORIS connector each file will be stored in a S3-bucket.
+    /// </summary>
+    /// <param name="projectId">The id for the project (matches the S3 bucket name)</param>
+    /// <param name="files">A file</param>
+    /// <param name="fileName">Not used but suplied by the sender</param>
+    /// <param name="folder">Not used but suplied by the sender</param>
+    /// <param name="userId">The user identifier</param>
+    /// <returns></returns>
     [HttpPost("metadata/project/{projectId}/files")]
     public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
     {
-        //TODO: Check that project has been created in storage
         if(this.storageService.ProjectExist(projectId).Result == false){
             return NotFound(new {
                 Success = false,
@@ -90,7 +106,7 @@ public class ConnectorController : ControllerBase
             });
         }
         
-        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}");
+        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}, userId: {userId}");
         
         // Upload file to s3 storage
         this.storageService.AddFile(projectId, fileName, files.ContentType, files.OpenReadStream());
@@ -110,7 +126,6 @@ public class ConnectorController : ControllerBase
         
         // Get file to s3 storage
         var files = this.storageService.GetFiles(projectId);
-        var fileList = new List<Models.File>();
         return Ok(new
         {
             Files = files.Result
