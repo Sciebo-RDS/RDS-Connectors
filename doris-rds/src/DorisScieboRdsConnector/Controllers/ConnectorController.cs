@@ -99,14 +99,13 @@ public class ConnectorController : ControllerBase
     [HttpPost("metadata/project/{projectId}/files")]
     public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
     {
+        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}/files), file: {fileName}, folder: {folder}, userId: {userId}");
         if(this.storageService.ProjectExist(projectId).Result == false){
             return NotFound(new {
                 Success = false,
                 Message = $"Project {projectId} does not have a storage bucket"
             });
         }
-        
-        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}), file: {fileName}, folder: {folder}, userId: {userId}");
         
         // Upload file to s3 storage
         this.storageService.AddFile(projectId, fileName, files.ContentType, files.OpenReadStream());
