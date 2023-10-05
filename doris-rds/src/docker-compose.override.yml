@@ -1,7 +1,8 @@
 version: '3.4'
 
 services:
-  dorissciebordsconnector:
+  doris-connector:
+    hostname: doris-connector
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -16,6 +17,14 @@ services:
       - ManifestIndex__ApiKey=key
     ports:
       - 8080:80
+  nextcloud:
+    image: nextcloud
+    hostname: nextcloud
+    environment:
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+    ports:
+      - 8081:80
   minios3test:
     image: quay.io/minio/minio
     hostname: minio

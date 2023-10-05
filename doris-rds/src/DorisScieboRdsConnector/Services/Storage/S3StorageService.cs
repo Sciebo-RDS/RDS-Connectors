@@ -55,7 +55,7 @@ public class S3StorageService : IStorageService
                 
                 fileList.Add(new Models.File(
                     item.Key, 
-                    item.Size, 
+                    (long)item.Size, 
                     item.LastModifiedDateTime,
                     stat.ContentType,
                     item.ETag,

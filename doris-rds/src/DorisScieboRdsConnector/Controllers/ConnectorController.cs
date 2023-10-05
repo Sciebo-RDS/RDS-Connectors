@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Minio;
+using WebDav;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
@@ -24,12 +27,21 @@ public class ConnectorController : ControllerBase
     {
         this.logger = logger;
         this.configuration = configuration;
+        /*
         MinioClient minio = new MinioClient()
                             .WithEndpoint(configuration["S3:Url"])
                             .WithCredentials(configuration["S3:AccessKey"], configuration["S3:SecretKey"])
                             .WithSSL(false)
                             .Build();
         this.storageService = new S3StorageService(minio, this.logger);
+        */
+
+        var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "ZGF0YXNldHM6TkRxWHQtcGtvWkEtNWJiZ00tV2Z0bVktbTc1cTg=");
+        httpClient.DefaultRequestHeaders.Add("Host", "localhost");
+        //httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "YWRtaW46YWRtaW4=");
+        var webDav = new WebDavClient(httpClient);
+        this.storageService = new WebDavStorageService(webDav, this.logger);
     }
 
     [HttpPost("metadata/project")]
@@ -97,19 +109,31 @@ public class ConnectorController : ControllerBase
     /// <param name="userId">The user identifier</param>
     /// <returns></returns>
     [HttpPost("metadata/project/{projectId}/files")]
-    public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
+    [Consumes("multipart/form-data")]
+    //public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
+    public IActionResult AddFile([FromRoute]string projectId)
     {
+        if(Request.Form.Files.Count == 0){
+            return NotFound(new {
+                Success = false,
+                Message = "Missing file in POST"
+            });
+        }
+        
+        foreach( IFormFile file in Request.Form.Files){
+            logger.LogInformation($"📄AddFile IFormFile file: {file.FileName}");
+            this.storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
+        }
+
+        /*
         logger.LogInformation($"AddFile (POST /metadata/project/{projectId}/files), file: {fileName}, folder: {folder}, userId: {userId}");
         if(this.storageService.ProjectExist(projectId).Result == false){
             return NotFound(new {
                 Success = false,
                 Message = $"Project {projectId} does not have a storage bucket"
             });
-        }
+        }*/
         
-        // Upload file to s3 storage
-        this.storageService.AddFile(projectId, fileName, files.ContentType, files.OpenReadStream());
-
         return Ok(new
         {
             Success = true
