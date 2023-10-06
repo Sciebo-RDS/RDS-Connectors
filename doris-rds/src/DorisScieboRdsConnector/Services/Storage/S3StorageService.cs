@@ -20,13 +20,13 @@ public class S3StorageService : IStorageService
         this.logger = logger;
         this.minio = minio;
     }
-    public async Task AddFile(string projectId, string fileName, string contentType, Stream filedata)
+    public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
         var args = new PutObjectArgs()
             .WithBucket(projectId)
             .WithObject(fileName)
-            .WithStreamData(filedata)
-            .WithObjectSize(filedata.Length)
+            .WithStreamData(stream)
+            .WithObjectSize(stream.Length)
             .WithContentType(contentType);
             
         await this.minio.PutObjectAsync(args).ConfigureAwait(false);

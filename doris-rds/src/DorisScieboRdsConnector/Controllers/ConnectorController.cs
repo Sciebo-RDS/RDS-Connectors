@@ -27,22 +27,16 @@ public class ConnectorController : ControllerBase
     {
         this.logger = logger;
         this.configuration = configuration;
-        /*
-        MinioClient minio = new MinioClient()
-                            .WithEndpoint(configuration["S3:Url"])
-                            .WithCredentials(configuration["S3:AccessKey"], configuration["S3:SecretKey"])
-                            .WithSSL(false)
-                            .Build();
-        this.storageService = new S3StorageService(minio, this.logger);
-        */
+        
+        string authString = configuration.GetValue<string>("NextCloud:User") + ":" + configuration.GetValue<string>("NextCloud:Password");
+        string basicAuth = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));
 
         var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "ZGF0YXNldHM6TkRxWHQtcGtvWkEtNWJiZ00tV2Z0bVktbTc1cTg=");
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
         httpClient.DefaultRequestHeaders.Add("Host", "localhost");
-        //httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "YWRtaW46YWRtaW4=");
+
         var webDav = new WebDavClient(httpClient);
-        string baseUrl = "http://nextcloud/remote.php/dav/files/datasets/";
-        this.storageService = new WebDavStorageService(webDav, this.logger, baseUrl);
+        this.storageService = new WebDavStorageService(webDav, this.logger, this.configuration);
     }
 
     [HttpPost("metadata/project")]
