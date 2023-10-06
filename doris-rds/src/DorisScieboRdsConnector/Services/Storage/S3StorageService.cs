@@ -32,8 +32,8 @@ public class S3StorageService : IStorageService
         await this.minio.PutObjectAsync(args).ConfigureAwait(false);
     }
 
-    public Task<bool> ProjectExist(string projectId){
-        return this.minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(projectId));
+    public async Task<bool> ProjectExist(string projectId){
+        return await this.minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(projectId));
         throw new System.NotImplementedException();
     }
 
@@ -55,7 +55,7 @@ public class S3StorageService : IStorageService
                 
                 fileList.Add(new Models.File(
                     item.Key, 
-                    (long)item.Size, 
+                    item.Size.ToString(), 
                     item.LastModifiedDateTime,
                     stat.ContentType,
                     item.ETag,

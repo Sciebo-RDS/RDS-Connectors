@@ -4,7 +4,7 @@ namespace DorisScieboRdsConnector.Models;
 
 public record File(
     string Id,
-    long? ContentSize = null,
+    string? ContentSize = null,
     DateTime? DateModified = null,
     string? EncodingFormat = null,
     string? Md5 = null,

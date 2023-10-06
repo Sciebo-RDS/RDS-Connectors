@@ -41,7 +41,8 @@ public class ConnectorController : ControllerBase
         httpClient.DefaultRequestHeaders.Add("Host", "localhost");
         //httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", "YWRtaW46YWRtaW4=");
         var webDav = new WebDavClient(httpClient);
-        this.storageService = new WebDavStorageService(webDav, this.logger);
+        string baseUrl = "http://nextcloud/remote.php/dav/files/datasets/";
+        this.storageService = new WebDavStorageService(webDav, this.logger, baseUrl);
     }
 
     [HttpPost("metadata/project")]
@@ -120,7 +121,7 @@ public class ConnectorController : ControllerBase
             });
         }
         
-        foreach( IFormFile file in Request.Form.Files){
+        foreach(IFormFile file in Request.Form.Files){
             logger.LogInformation($"📄AddFile IFormFile file: {file.FileName}");
             this.storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
         }
