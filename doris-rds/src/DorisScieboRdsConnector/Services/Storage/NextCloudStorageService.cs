@@ -47,9 +47,11 @@ public class NextCloudStorageService : IStorageService
         
         if(result.IsSuccessful){
             this.logger.LogDebug($"AddFile OK 🐛 {fileUploadUrl}");
+            this.logger.LogInformation($"AddFile OK {fileUploadUrl}");
         }else{
             this.logger.LogError($"AddFile UPLOAD FAIL 🐛 {fileUploadUrl}");
-            this.logger.LogInformation(result.ToString());
+
+            this.logger.LogInformation("🐛AddFile FAILED WebDav Responmse" + result.ToString());
         }
     }
 
@@ -77,7 +79,8 @@ public class NextCloudStorageService : IStorageService
         var uri  = new Uri(url);
 
         string shareToken = await GetOcsShareToken(projectId);
-        
+        this.logger.LogInformation($"📁GetFiles projectId: {projectId} shareToken: {shareToken}");
+
         var propfindParameters = new PropfindParameters{ ApplyTo = ApplyTo.Propfind.ResourceAndAncestors };
         var result = await this.webDav.Propfind(url, propfindParameters);
 
@@ -86,7 +89,7 @@ public class NextCloudStorageService : IStorageService
             foreach (var res in result.Resources)
             {
                 if(res.IsCollection){
-                    this.logger.LogDebug("📁 " + res.Uri);
+                    this.logger.LogDebug("📁 directory {res.Uri}");
                     continue;
                 }
                 // get the relative path from the dataset directory
@@ -115,9 +118,11 @@ public class NextCloudStorageService : IStorageService
     {
         bool projectExist = await this.ProjectExist(projectId);
         if(projectExist){
+            this.logger.LogInformation($"📁SetupProject projectId exists: {projectId}");
             return;
         }
 
+        this.logger.LogInformation($"📁SetupProject create webdav: {this.webDavBaseUrl}/public-datasets/{projectId}");
         await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}");
         await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}/data");
     }
