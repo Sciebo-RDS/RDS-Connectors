@@ -10,10 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using WebDav;
-using Minio;
-using System.Text.Json.Nodes;
 using DorisScieboRdsConnector.Models;
-using System.Reflection;
 
 public class NextCloudStorageService : IStorageService
 {
@@ -49,8 +46,8 @@ public class NextCloudStorageService : IStorageService
             logger.LogDebug($"AddFile OK 🐛 {fileUploadUrl}");
             logger.LogInformation($"AddFile OK {fileUploadUrl}");
         }else{
-            logger.LogError($"📄AddFile UPLOAD FAIL 🐛 {fileUploadUrl}");
-            logger.LogInformation($"📄AddFile FAILED WebDav Response {result}");
+            logger.LogError($"AddFile UPLOAD FAIL {fileUploadUrl}");
+            logger.LogInformation($"AddFile FAILED WebDav Response {result}");
         }
     }
 
@@ -88,7 +85,7 @@ public class NextCloudStorageService : IStorageService
             foreach (var res in result.Resources)
             {
                 if(res.IsCollection){
-                    logger.LogDebug("📁 directory {res.Uri}");
+                    logger.LogDebug($"📁 directory {res.Uri}");
                     continue;
                 }
                 // get the relative path from the dataset directory
@@ -121,7 +118,7 @@ public class NextCloudStorageService : IStorageService
             return;
         }
 
-        logger.LogInformation($"📁SetupProject create webdav: {webDavBaseUrl}/public-datasets/{projectId}");
+        logger.LogInformation($"📁SetupProject create WebDav: {webDavBaseUrl}/public-datasets/{projectId}");
         await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}");
         await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}/data");
         await GetOcsShareToken(projectId);
@@ -155,7 +152,7 @@ public class NextCloudStorageService : IStorageService
 			response.EnsureSuccessStatusCode();
 
             string responseString = await response.Content.ReadAsStringAsync();
-            logger.LogDebug("🌐 GetOcsShare response: " + responseString);
+            logger.LogDebug($"🌐 GetOcsShare response: {responseString}");
             OcsGetResponse ocsResponse = JsonSerializer.Deserialize<OcsGetResponse>(responseString)!;
             
             List<OcsShare> shares = ocsResponse?.ocs?.data ?? new List<OcsShare>();
@@ -192,7 +189,7 @@ public class NextCloudStorageService : IStorageService
 			response.EnsureSuccessStatusCode();
 
             string responseString = await response.Content.ReadAsStringAsync();
-            logger.LogDebug("🌐 CreateOcsShare response: " + responseString);
+            logger.LogDebug($"🌐 CreateOcsShare response: {responseString}");
             OcsPostResponse ocsResponse = JsonSerializer.Deserialize<OcsPostResponse>(responseString)!;
             
             if(ocsResponse?.ocs?.data is not null){
