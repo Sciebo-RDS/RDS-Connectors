@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Minio;
 using WebDav;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
+using System.IO.Hashing;
 
 namespace DorisScieboRdsConnector.Controllers;
 
@@ -47,7 +47,13 @@ public class ConnectorController : ControllerBase
         // Do we need tagging or something similar when creating the bucket?
         logger.LogInformation($"CreateProject (POST /metadata/project), userId: {request.UserId}, metadata: {request.Metadata}");
  
-        var projectId = Guid.NewGuid().ToString();
+        string hashCode = String.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
+        string projectId =  $"{DateTime.Now.Year}-{hashCode}";
+        /*
+        while(await this.storageService.ProjectExist(projectId)){
+            hashCode = String.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
+            projectId =  $"{DateTime.Now.Year}-{hashCode}";
+        }*/
         
         logger.LogInformation($"🪣 call SetupProject for projectId {projectId}");
         this.storageService.SetupProject(projectId);

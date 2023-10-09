@@ -13,6 +13,7 @@ using WebDav;
 using Minio;
 using System.Text.Json.Nodes;
 using DorisScieboRdsConnector.Models;
+using System.Reflection;
 
 public class NextCloudStorageService : IStorageService
 {
@@ -23,6 +24,7 @@ public class NextCloudStorageService : IStorageService
 
     private string? baseUrl;
     private string? nextCloudUser;
+    private string? webDavBaseUrl;
 
     public NextCloudStorageService(IWebDavClient webDav, HttpClient httpClient, ILogger logger, IConfiguration configuration)
     {
@@ -32,13 +34,17 @@ public class NextCloudStorageService : IStorageService
         this.configuration = configuration;
         this.baseUrl = configuration.GetValue<string>("NextCloud:BaseUrl");
         this.nextCloudUser = configuration.GetValue<string>("NextCloud:User");
+        this.webDavBaseUrl = $"{this.baseUrl}/remote.php/dav/files/{this.nextCloudUser}";
     }
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        string fileUploadUrl = $"{this.baseUrl}/remote.php/dav/files/{this.nextCloudUser}/{projectId}/{fileName}";
+        string fileUploadUrl = $"{this.webDavBaseUrl}/public-datasets/{projectId}/data/{fileName}";
+        
         this.logger.LogDebug($"AddFile fileUploadUrl 🐛 {fileUploadUrl}");
         this.logger.LogDebug($"AddFile contentType 🐛 {contentType}");
+        
         var result = await this.webDav.PutFile(fileUploadUrl, stream, contentType);
+        
         if(result.IsSuccessful){
             this.logger.LogDebug($"AddFile OK 🐛 {fileUploadUrl}");
         }else{
@@ -48,7 +54,7 @@ public class NextCloudStorageService : IStorageService
     }
 
     public async Task<bool> ProjectExist(string projectId){
-        var result = await this.webDav.Propfind(this.baseUrl + projectId);
+        var result = await this.webDav.Propfind($"{this.webDavBaseUrl}/public-datasets/{projectId}");
         if(result.IsSuccessful == false){
             return false;
         }
@@ -65,12 +71,12 @@ public class NextCloudStorageService : IStorageService
 
     public async Task<IEnumerable<Models.File>> GetFiles(string projectId)
     {   
-        var url = $"{this.baseUrl}/remote.php/dav/files/{this.nextCloudUser}/{projectId}";
+        //TODO: private/public should be handled in some way...
+        var url = $"{this.webDavBaseUrl}/public-datasets/{projectId}";
         var fileList = new List<Models.File>();
         var uri  = new Uri(url);
 
-        //TODO: get share id from NextCloud
-        string shareId = await GetShareId(projectId);
+        string shareToken = await GetOcsShareToken(projectId);
         
         var propfindParameters = new PropfindParameters{ ApplyTo = ApplyTo.Propfind.ResourceAndAncestors };
         var result = await this.webDav.Propfind(url, propfindParameters);
@@ -94,7 +100,7 @@ public class NextCloudStorageService : IStorageService
                     ContentSize : res.ContentLength.ToString(),
                     EncodingFormat : res.ContentType,
                     DateModified : res.LastModifiedDate,
-                    Url: new Uri($"{this.baseUrl}/s/{shareId}/download?path=%2F{dirPath}&files={fileName}")
+                    Url: new Uri($"{this.baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
                 ));
             }
         }else{
@@ -112,44 +118,83 @@ public class NextCloudStorageService : IStorageService
             return;
         }
 
-        await this.webDav.Mkcol(this.configuration["NextCloud."]+ projectId);
-        await this.webDav.Mkcol(this.baseUrl + projectId + "/data");
+        await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}");
+        await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}/data");
     }
 
-    private async Task<string> GetShareId(string projectId){
-        Uri shareApiUri = new Uri($"{this.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path={projectId}");
+    public async Task<string> GetOcsShareToken(string projectId){
+		OcsShare? share = await this.GetOcsShare(projectId);
+        
+        if(share is null){
+            share = await this.CreateOcsShare(projectId);
+        }
+        
+        if(share?.token is not null){
+            return share.token;
+        }
+
+        this.logger.LogError($"GetOcsShareToken ERROR for {projectId}");
+        return "NO-TOKEN";
+    }
+
+    private async Task<OcsShare?> GetOcsShare(string projectId){
+        //TODO: public/private handling
+        Uri shareApiUri = new Uri($"{this.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=public-datasets/{projectId}");
 
 		using (var request = new HttpRequestMessage(HttpMethod.Get, shareApiUri))
 		{
-			request.Headers.Add("OCS-APIRequest", "true");// = new AuthenticationHeaderValue("Bearer", Token);
+			request.Headers.Add("OCS-APIRequest", "true");
 			request.Headers.Add("Accept", "application/json");
             var response = await this.httpClient.SendAsync(request);
 
 			response.EnsureSuccessStatusCode();
 
             string responseString = await response.Content.ReadAsStringAsync();
-            this.logger.LogDebug("🌐 SHARE response: " + responseString);
-            OcsResponse share = JsonSerializer.Deserialize<OcsResponse>(responseString)!;
-            string? token = share?.ocs?.data?[0]?.token;
-            if(token != null){
-                this.logger.LogDebug("🌐 TOKEN: " + token);
-                return token;
-            }
-		}
+            this.logger.LogDebug("🌐 GetOcsShare response: " + responseString);
+            OcsGetResponse ocsResponse = JsonSerializer.Deserialize<OcsGetResponse>(responseString)!;
+            
+            List<OcsShare> shares = ocsResponse?.ocs?.data ?? new List<OcsShare>();
 
-        //TODO: check if share exist, use this share
+            foreach(var share in shares){
+                if(share.label == "dataset-share"){
+                    return share;
+                }
+            }
+        }
         
-        //TODO: create share
-        /*
-        Header:
-            Accept application/json
-            OCS-APIRequest true
-        POST body:
-            path projectId
-            permissions 1
-            shareType 3
-            publicUpload false
-        */
-        return "";
+        return null;
     }
+
+    private async Task<OcsShare?> CreateOcsShare(string projectId){
+        Uri shareApiUri = new Uri($"{this.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares");
+
+        var values = new Dictionary<string, string>
+        {
+            { "path", $"public-datasets/{projectId}" }, //TODO: public/private handling
+            { "permissions", "1" },
+            { "shareType", "3" },
+            { "publicUpload", "false" },
+            { "label", "dataset-share" }
+        };
+
+		using (var request = new HttpRequestMessage(HttpMethod.Post, shareApiUri))
+		{
+			request.Headers.Add("OCS-APIRequest", "true");
+			request.Headers.Add("Accept", "application/json");
+            request.Content = new FormUrlEncodedContent(values);
+            var response = await this.httpClient.SendAsync(request);
+
+			response.EnsureSuccessStatusCode();
+
+            string responseString = await response.Content.ReadAsStringAsync();
+            this.logger.LogDebug("🌐 CreateOcsShare response: " + responseString);
+            OcsPostResponse ocsResponse = JsonSerializer.Deserialize<OcsPostResponse>(responseString)!;
+            
+            if(ocsResponse?.ocs?.data is not null){
+                return ocsResponse?.ocs?.data;
+            }
+        }
+        return null;
+    }
+
 }
