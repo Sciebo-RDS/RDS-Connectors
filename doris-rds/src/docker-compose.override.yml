@@ -7,7 +7,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - Domain=test.se
-      - PublicFileUrlPrefix=http://example.se/download/
       - ScieboRds__TokenStorageUrl
       - ScieboRds__ConnectorServiceName=port-doris
       - S3__Url=minio:9000

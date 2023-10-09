@@ -36,7 +36,7 @@ public class ConnectorController : ControllerBase
         httpClient.DefaultRequestHeaders.Add("Host", "localhost");
 
         var webDav = new WebDavClient(httpClient);
-        this.storageService = new NextCloudStorageService(webDav, httpClient, this.logger, this.configuration);
+        this.storageService = new NextCloudStorageService(webDav, httpClient, logger, configuration);
     }
 
     [HttpPost("metadata/project")]
@@ -55,7 +55,7 @@ public class ConnectorController : ControllerBase
             projectId =  $"{DateTime.Now.Year}-{hashCode}";
         }*/
         
-        logger.LogInformation($"🪣 call SetupProject for projectId {projectId}");
+        logger.LogInformation($"🪣CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {configuration.GetValue<string>("NextCloud:User")}");
         this.storageService.SetupProject(projectId);
 
         return Ok(new

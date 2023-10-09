@@ -34,29 +34,28 @@ public class NextCloudStorageService : IStorageService
         this.configuration = configuration;
         this.baseUrl = configuration.GetValue<string>("NextCloud:BaseUrl");
         this.nextCloudUser = configuration.GetValue<string>("NextCloud:User");
-        this.webDavBaseUrl = $"{this.baseUrl}/remote.php/dav/files/{this.nextCloudUser}";
+        this.webDavBaseUrl = $"{baseUrl}/remote.php/dav/files/{nextCloudUser}";
     }
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        string fileUploadUrl = $"{this.webDavBaseUrl}/public-datasets/{projectId}/data/{fileName}";
+        string fileUploadUrl = $"{webDavBaseUrl}/public-datasets/{projectId}/data/{fileName}";
         
-        this.logger.LogDebug($"AddFile fileUploadUrl 🐛 {fileUploadUrl}");
-        this.logger.LogDebug($"AddFile contentType 🐛 {contentType}");
+        logger.LogDebug($"AddFile fileUploadUrl 🐛 {fileUploadUrl}");
+        logger.LogDebug($"AddFile contentType 🐛 {contentType}");
         
-        var result = await this.webDav.PutFile(fileUploadUrl, stream, contentType);
+        var result = await webDav.PutFile(fileUploadUrl, stream, contentType);
         
         if(result.IsSuccessful){
-            this.logger.LogDebug($"AddFile OK 🐛 {fileUploadUrl}");
-            this.logger.LogInformation($"AddFile OK {fileUploadUrl}");
+            logger.LogDebug($"AddFile OK 🐛 {fileUploadUrl}");
+            logger.LogInformation($"AddFile OK {fileUploadUrl}");
         }else{
-            this.logger.LogError($"AddFile UPLOAD FAIL 🐛 {fileUploadUrl}");
-
-            this.logger.LogInformation("🐛AddFile FAILED WebDav Responmse" + result.ToString());
+            logger.LogError($"📄AddFile UPLOAD FAIL 🐛 {fileUploadUrl}");
+            logger.LogInformation($"📄AddFile FAILED WebDav Response {result}");
         }
     }
 
     public async Task<bool> ProjectExist(string projectId){
-        var result = await this.webDav.Propfind($"{this.webDavBaseUrl}/public-datasets/{projectId}");
+        var result = await webDav.Propfind($"{webDavBaseUrl}/public-datasets/{projectId}");
         if(result.IsSuccessful == false){
             return false;
         }
@@ -74,22 +73,22 @@ public class NextCloudStorageService : IStorageService
     public async Task<IEnumerable<Models.File>> GetFiles(string projectId)
     {   
         //TODO: private/public should be handled in some way...
-        var url = $"{this.webDavBaseUrl}/public-datasets/{projectId}";
+        var url = $"{webDavBaseUrl}/public-datasets/{projectId}";
         var fileList = new List<Models.File>();
         var uri  = new Uri(url);
 
         string shareToken = await GetOcsShareToken(projectId);
-        this.logger.LogInformation($"📁GetFiles projectId: {projectId} shareToken: {shareToken}");
+        logger.LogInformation($"📁GetFiles projectId: {projectId} shareToken: {shareToken}");
 
         var propfindParameters = new PropfindParameters{ ApplyTo = ApplyTo.Propfind.ResourceAndAncestors };
-        var result = await this.webDav.Propfind(url, propfindParameters);
+        var result = await webDav.Propfind(url, propfindParameters);
 
         if (result.IsSuccessful)
         {
             foreach (var res in result.Resources)
             {
                 if(res.IsCollection){
-                    this.logger.LogDebug("📁 directory {res.Uri}");
+                    logger.LogDebug("📁 directory {res.Uri}");
                     continue;
                 }
                 // get the relative path from the dataset directory
@@ -103,12 +102,12 @@ public class NextCloudStorageService : IStorageService
                     ContentSize : res.ContentLength.ToString(),
                     EncodingFormat : res.ContentType,
                     DateModified : res.LastModifiedDate,
-                    Url: new Uri($"{this.baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
+                    Url: new Uri($"{baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
                 ));
             }
         }else{
-            this.logger.LogError($"GetFiles ERROR listing files from WebDAV {projectId}");
-            this.logger.LogError(result.ToString());
+            logger.LogError($"GetFiles ERROR listing files from WebDAV {projectId}");
+            logger.LogError(result.ToString());
         }
 
         return fileList;
@@ -116,46 +115,47 @@ public class NextCloudStorageService : IStorageService
 
     public async Task SetupProject(string projectId)
     {
-        bool projectExist = await this.ProjectExist(projectId);
+        bool projectExist = await ProjectExist(projectId);
         if(projectExist){
-            this.logger.LogInformation($"📁SetupProject projectId exists: {projectId}");
+            logger.LogInformation($"📁SetupProject projectId exists: {projectId}");
             return;
         }
 
-        this.logger.LogInformation($"📁SetupProject create webdav: {this.webDavBaseUrl}/public-datasets/{projectId}");
-        await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}");
-        await this.webDav.Mkcol($"{this.webDavBaseUrl}/public-datasets/{projectId}/data");
+        logger.LogInformation($"📁SetupProject create webdav: {webDavBaseUrl}/public-datasets/{projectId}");
+        await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}");
+        await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}/data");
+        await GetOcsShareToken(projectId);
     }
 
     public async Task<string> GetOcsShareToken(string projectId){
-		OcsShare? share = await this.GetOcsShare(projectId);
+		OcsShare? share = await GetOcsShare(projectId);
         
         if(share is null){
-            share = await this.CreateOcsShare(projectId);
+            share = await CreateOcsShare(projectId);
         }
         
         if(share?.token is not null){
             return share.token;
         }
 
-        this.logger.LogError($"GetOcsShareToken ERROR for {projectId}");
+        logger.LogError($"GetOcsShareToken ERROR for {projectId}");
         return "NO-TOKEN";
     }
 
     private async Task<OcsShare?> GetOcsShare(string projectId){
         //TODO: public/private handling
-        Uri shareApiUri = new Uri($"{this.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=public-datasets/{projectId}");
+        Uri shareApiUri = new Uri($"{baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=public-datasets/{projectId}");
 
 		using (var request = new HttpRequestMessage(HttpMethod.Get, shareApiUri))
 		{
 			request.Headers.Add("OCS-APIRequest", "true");
 			request.Headers.Add("Accept", "application/json");
-            var response = await this.httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
 			response.EnsureSuccessStatusCode();
 
             string responseString = await response.Content.ReadAsStringAsync();
-            this.logger.LogDebug("🌐 GetOcsShare response: " + responseString);
+            logger.LogDebug("🌐 GetOcsShare response: " + responseString);
             OcsGetResponse ocsResponse = JsonSerializer.Deserialize<OcsGetResponse>(responseString)!;
             
             List<OcsShare> shares = ocsResponse?.ocs?.data ?? new List<OcsShare>();
@@ -171,7 +171,7 @@ public class NextCloudStorageService : IStorageService
     }
 
     private async Task<OcsShare?> CreateOcsShare(string projectId){
-        Uri shareApiUri = new Uri($"{this.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares");
+        Uri shareApiUri = new Uri($"{baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares");
 
         var values = new Dictionary<string, string>
         {
@@ -187,12 +187,12 @@ public class NextCloudStorageService : IStorageService
 			request.Headers.Add("OCS-APIRequest", "true");
 			request.Headers.Add("Accept", "application/json");
             request.Content = new FormUrlEncodedContent(values);
-            var response = await this.httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
 
 			response.EnsureSuccessStatusCode();
 
             string responseString = await response.Content.ReadAsStringAsync();
-            this.logger.LogDebug("🌐 CreateOcsShare response: " + responseString);
+            logger.LogDebug("🌐 CreateOcsShare response: " + responseString);
             OcsPostResponse ocsResponse = JsonSerializer.Deserialize<OcsPostResponse>(responseString)!;
             
             if(ocsResponse?.ocs?.data is not null){
