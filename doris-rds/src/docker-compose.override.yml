@@ -13,7 +13,7 @@ services:
       - S3__Url=minio:9000
       - S3__AccessKey=user1
       - S3__SecretKey=user1password
-      - NextCloud__WebDavBaseUrl=http://nextcloud/remote.php/dav/files/datasets/
+      - NextCloud__BaseUrl=http://nextcloud
       - NextCloud__User=datasets
       - NextCloud__Password=NDqXt-pkoZA-5bbgM-WftmY-m75q8
       - ManifestIndex__Url=https://snd-storage-metadata-index-test-snd-dev.apps.k8s.gu.se

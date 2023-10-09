@@ -36,7 +36,7 @@ public class ConnectorController : ControllerBase
         httpClient.DefaultRequestHeaders.Add("Host", "localhost");
 
         var webDav = new WebDavClient(httpClient);
-        this.storageService = new WebDavStorageService(webDav, this.logger, this.configuration);
+        this.storageService = new NextCloudStorageService(webDav, httpClient, this.logger, this.configuration);
     }
 
     [HttpPost("metadata/project")]

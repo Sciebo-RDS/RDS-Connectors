@@ -7,5 +7,5 @@ public record File(
     string? ContentSize = null,
     DateTime? DateModified = null,
     string? EncodingFormat = null,
-    string? Md5 = null,
+    string? Sha256 = null,
     Uri? Url = null);
