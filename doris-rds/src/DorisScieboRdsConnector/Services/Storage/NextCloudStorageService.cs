@@ -35,7 +35,7 @@ public class NextCloudStorageService : IStorageService
     }
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        string fileUploadUrl = $"{webDavBaseUrl}/public-datasets/{projectId}/data/{fileName}";
+        string fileUploadUrl = $"{webDavBaseUrl}/doris-datasets/{projectId}/data/{fileName}";
         
         logger.LogDebug($"AddFile fileUploadUrl 🐛 {fileUploadUrl}");
         logger.LogDebug($"AddFile contentType 🐛 {contentType}");
@@ -52,7 +52,7 @@ public class NextCloudStorageService : IStorageService
     }
 
     public async Task<bool> ProjectExist(string projectId){
-        var result = await webDav.Propfind($"{webDavBaseUrl}/public-datasets/{projectId}");
+        var result = await webDav.Propfind($"{webDavBaseUrl}/doris-datasets/{projectId}");
         if(result.IsSuccessful == false){
             return false;
         }
@@ -70,7 +70,7 @@ public class NextCloudStorageService : IStorageService
     public async Task<IEnumerable<Models.File>> GetFiles(string projectId)
     {   
         //TODO: private/public should be handled in some way...
-        var url = $"{webDavBaseUrl}/public-datasets/{projectId}";
+        var url = $"{webDavBaseUrl}/doris-datasets/{projectId}";
         var fileList = new List<Models.File>();
         var uri  = new Uri(url);
 
@@ -112,15 +112,14 @@ public class NextCloudStorageService : IStorageService
 
     public async Task SetupProject(string projectId)
     {
-        bool projectExist = await ProjectExist(projectId);
-        if(projectExist){
+        if(await ProjectExist(projectId)){
             logger.LogInformation($"📁SetupProject projectId exists: {projectId}");
             return;
         }
 
-        logger.LogInformation($"📁SetupProject create WebDav: {webDavBaseUrl}/public-datasets/{projectId}");
-        await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}");
-        await webDav.Mkcol($"{webDavBaseUrl}/public-datasets/{projectId}/data");
+        logger.LogInformation($"📁SetupProject create WebDav: {webDavBaseUrl}/doris-datasets/{projectId}");
+        await webDav.Mkcol($"{webDavBaseUrl}/doris-datasets/{projectId}");
+        await webDav.Mkcol($"{webDavBaseUrl}/doris-datasets/{projectId}/data");
         await GetOcsShareToken(projectId);
     }
 
@@ -141,7 +140,7 @@ public class NextCloudStorageService : IStorageService
 
     private async Task<OcsShare?> GetOcsShare(string projectId){
         //TODO: public/private handling
-        Uri shareApiUri = new Uri($"{baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=public-datasets/{projectId}");
+        Uri shareApiUri = new Uri($"{baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=doris-datasets/{projectId}");
 
 		using (var request = new HttpRequestMessage(HttpMethod.Get, shareApiUri))
 		{
@@ -172,7 +171,7 @@ public class NextCloudStorageService : IStorageService
 
         var values = new Dictionary<string, string>
         {
-            { "path", $"public-datasets/{projectId}" }, //TODO: public/private handling
+            { "path", $"doris-datasets/{projectId}" }, //TODO: public/private handling
             { "permissions", "1" },
             { "shareType", "3" },
             { "publicUpload", "false" },

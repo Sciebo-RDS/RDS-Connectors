@@ -95,7 +95,7 @@ public class S3StorageService : IStorageService
         }
         catch (MinioException e)
         {
-            logger.LogInformation($"🪣 FAIL BUCET  {e.Message}");
+            logger.LogInformation($"🪣 FAIL BUCKET  {e.Message}");
             throw e;
         }
     }

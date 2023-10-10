@@ -4,14 +4,15 @@ using System.Text.Json.Nodes;
 
 namespace DorisScieboRdsConnector.Models;
 
-class Manifest{
+class RoCrate
+{
   public string? eduPersonPrincipalName;
   public string? projectId;
   public string? domain;
   public string? label;
   private IEnumerable<Models.File> files;
 
-  public Manifest(string projectId, string eduPersonPrincipalName, string domain, string label){
+  public RoCrate(string projectId, string eduPersonPrincipalName, string domain, string label){
     this.files = new List<Models.File>();
   }
 
@@ -25,7 +26,8 @@ class Manifest{
     }
   }
 
-  public JsonObject ToGraph(){
+  public JsonObject ToGraph()
+  {
     //return new JsonObject();
     
     var graph = new JsonArray();

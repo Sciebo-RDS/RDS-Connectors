@@ -49,6 +49,7 @@ public class ConnectorController : ControllerBase
  
         string hashCode = String.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
         string projectId =  $"{DateTime.Now.Year}-{hashCode}";
+        
         /*
         while(await this.storageService.ProjectExist(projectId)){
             hashCode = String.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
@@ -56,12 +57,12 @@ public class ConnectorController : ControllerBase
         }*/
         
         logger.LogInformation($"🪣CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {configuration.GetValue<string>("NextCloud:User")}");
-        this.storageService.SetupProject(projectId);
+        storageService.SetupProject(projectId);
 
         return Ok(new
         {
-            ProjectId = projectId, // Is UUID the right choice here? Or something more human readable?
-            Metadata = new JsonObject() // How is this used?
+            ProjectId = projectId,
+            Metadata = new JsonObject() // How is this used by sciebo-rds?
         });
     }
     
@@ -74,7 +75,7 @@ public class ConnectorController : ControllerBase
 
         logger.LogInformation($"UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {request.UserId}, metadata: {request.Metadata}");
 
-        var files = this.storageService.GetFiles(projectId);
+        var files = storageService.GetFiles(projectId);
         //var manifest = RoCrateHelper.GenerateRoCrateManifest(projectId, this.configuration["Domain"], "usertmp", files);
 
         return Ok(new 
@@ -91,8 +92,7 @@ public class ConnectorController : ControllerBase
         // Generate RO-Crate manifest with file metadata from storage and possibly project label from Describo manifest
         // Post manifest to index server at SND
 
-        // Get file to s3 storage
-        var files = this.storageService.GetFiles(projectId);
+        var files = storageService.GetFiles(projectId);
 
         logger.LogInformation($"PublishProject (PUT /metadata/project/{projectId}), userId: {request.UserId}");
 
@@ -120,21 +120,19 @@ public class ConnectorController : ControllerBase
                 Message = "Missing file in POST"
             });
         }
-        
-        foreach(IFormFile file in Request.Form.Files){
-            logger.LogInformation($"📄AddFile IFormFile file: {file.FileName}");
-            this.storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
-        }
 
-        /*
-        logger.LogInformation($"AddFile (POST /metadata/project/{projectId}/files), file: {fileName}, folder: {folder}, userId: {userId}");
-        if(this.storageService.ProjectExist(projectId).Result == false){
+        if(storageService.ProjectExist(projectId).Result == false){
             return NotFound(new {
                 Success = false,
                 Message = $"Project {projectId} does not have a storage bucket"
             });
-        }*/
+        }
         
+        foreach(IFormFile file in Request.Form.Files){
+            logger.LogInformation($"📄AddFile IFormFile file: {file.FileName}");
+            storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
+        }
+    
         return Ok(new
         {
             Success = true
@@ -144,12 +142,9 @@ public class ConnectorController : ControllerBase
     [HttpGet("metadata/project/{projectId}/files")]
     public IActionResult GetFiles([FromRoute]string projectId)
     {
-        //TODO: Check that project has been created in storage
-        
         logger.LogInformation($"GetFiles (GET /metadata/project/{projectId}), projectId: {projectId}");
         
-        // Get file to s3 storage
-        var files = this.storageService.GetFiles(projectId);
+        var files = storageService.GetFiles(projectId);
         return Ok(new
         {
             Files = files.Result
