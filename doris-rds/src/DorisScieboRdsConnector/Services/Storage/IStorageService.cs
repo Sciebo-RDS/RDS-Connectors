@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using DorisScieboRdsConnector.Models;
 
 namespace DorisScieboRdsConnector.Services.Storage;
 
@@ -13,5 +14,5 @@ public interface IStorageService
 
     Task AddFile(string projectId, string fileName, string contentType, Stream stream);
 
-    Task<IEnumerable<Models.File>> GetFiles(string projectId);
+    Task<IEnumerable<RoFile>> GetFiles(string projectId);
 }

@@ -67,11 +67,11 @@ public class NextCloudStorageService : IStorageService
         return false;
     }
 
-    public async Task<IEnumerable<Models.File>> GetFiles(string projectId)
+    public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
     {   
         //TODO: private/public should be handled in some way...
         var url = $"{webDavBaseUrl}/doris-datasets/{projectId}";
-        var fileList = new List<Models.File>();
+        var fileList = new List<RoFile>();
         var uri  = new Uri(url);
 
         string shareToken = await GetOcsShareToken(projectId);

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -10,13 +9,13 @@ class RoCrate
   public string? projectId;
   public string? domain;
   public string? label;
-  private IEnumerable<Models.File> files;
+  private IEnumerable<RoFile> files;
 
   public RoCrate(string projectId, string eduPersonPrincipalName, string domain, string label){
-    this.files = new List<Models.File>();
+    this.files = new List<RoFile>();
   }
 
-  public IEnumerable<Models.File> Files
+  public IEnumerable<RoFile> Files
   {
     get {
       return this.files;

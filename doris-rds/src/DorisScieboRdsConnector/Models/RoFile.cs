@@ -2,7 +2,7 @@
 
 namespace DorisScieboRdsConnector.Models;
 
-public record File(
+public record RoFile(
     string Id,
     string? ContentSize = null,
     DateTime? DateModified = null,

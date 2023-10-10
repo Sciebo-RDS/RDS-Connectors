@@ -10,8 +10,9 @@ public static class RoCrateHelper
     public static JsonObject GenerateRoCrateManifest(
         string projectId, 
         string domain, 
-        string eduPersonPrincipalName, 
-        IEnumerable<File> files)
+        string eduPersonPrincipalName,
+        string alternateName,
+        IEnumerable<RoFile> files)
     {
 
         var graph = new JsonArray();
@@ -20,8 +21,8 @@ public static class RoCrateHelper
         {
             ["@type"] = "CreativeWork",
             ["@id"] = "ro-crate-metadata.json",
-            ["identifier"] = System.Guid.NewGuid(),
-            ["alternateName"] = projectId,
+            ["identifier"] = projectId,
+            ["alternateName"] = alternateName,
             ["conformsTo"] = new JsonObject
             {
                 ["@id"] = "https://w3id.org/ro/crate/1.1"

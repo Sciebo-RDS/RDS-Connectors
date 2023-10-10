@@ -10,6 +10,7 @@ using System.Reactive.Linq;
 using Minio.Exceptions;
 using System;
 using Microsoft.Extensions.Logging;
+using Models;
 
 public class S3StorageService : IStorageService
 {
@@ -29,31 +30,31 @@ public class S3StorageService : IStorageService
             .WithObjectSize(stream.Length)
             .WithContentType(contentType);
             
-        await this.minio.PutObjectAsync(args).ConfigureAwait(false);
+        await minio.PutObjectAsync(args).ConfigureAwait(false);
     }
 
     public async Task<bool> ProjectExist(string projectId){
-        return await this.minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(projectId));
-        throw new System.NotImplementedException();
+        return await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(projectId));
+        throw new NotImplementedException();
     }
 
-    public async Task<IEnumerable<Models.File>> GetFiles(string projectId)
+    public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
     {
         var listArgs = new ListObjectsArgs()
                 .WithBucket(projectId)
                 .WithRecursive(true);
-        IObservable<Item> observable = this.minio.ListObjectsAsync(listArgs);
+        IObservable<Item> observable = minio.ListObjectsAsync(listArgs);
         
-        var fileList = new List<Models.File>();
+        var fileList = new List<RoFile>();
         
         IDisposable subscription = observable.Subscribe(
             async (item) => {
                 StatObjectArgs statObjectArgs = new StatObjectArgs()
                                                         .WithBucket(projectId)
                                                         .WithObject(item.Key);
-                var stat = await this.minio.StatObjectAsync(statObjectArgs);
+                var stat = await minio.StatObjectAsync(statObjectArgs);
                 
-                fileList.Add(new Models.File(
+                fileList.Add(new RoFile(
                     item.Key, 
                     item.Size.ToString(), 
                     item.LastModifiedDateTime,
@@ -80,12 +81,12 @@ public class S3StorageService : IStorageService
 
         try
         {
-            await this.minio.MakeBucketAsync(
+            await minio.MakeBucketAsync(
                     new MakeBucketArgs()
                         .WithBucket(projectId)
                 ).ConfigureAwait(false);
 
-            await this.minio.SetBucketTagsAsync(
+            await minio.SetBucketTagsAsync(
                 new SetBucketTagsArgs()
                     .WithBucket(projectId)
                     .WithTagging(Tagging.GetBucketTags(tags))
