@@ -17,24 +17,25 @@ namespace DorisScieboRdsConnector.Controllers;
 [Route("/")]
 public class ConnectorController : ControllerBase
 {
-    private readonly ILogger logger;
+    private readonly ILogger<ConnectorController> logger;
     private readonly IConfiguration configuration;
     private readonly IStorageService storageService;
 
-    public ConnectorController(ILogger<ConnectorController> logger, IConfiguration configuration)
+    public ConnectorController(ILogger<ConnectorController> logger, IConfiguration configuration, IStorageService storageService)
     {
         this.logger = logger;
         this.configuration = configuration;
         
-        string authString = configuration.GetValue<string>("NextCloud:User") + ":" + configuration.GetValue<string>("NextCloud:Password");
-        string basicAuth = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));
+        /*string authString = configuration.GetValue<string>("NextCloud:User") + ":" + configuration.GetValue<string>("NextCloud:Password");
+        string basicAuth = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));*/
 
-        var httpClient = new HttpClient();
+        /*var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
-        httpClient.DefaultRequestHeaders.Add("Host", "localhost");
+        httpClient.DefaultRequestHeaders.Add("Host", "localhost");*/
 
-        var webDav = new WebDavClient(httpClient);
-        this.storageService = new NextCloudStorageService(webDav, httpClient, logger, configuration);
+        /*var webDav = new WebDavClient(httpClient);
+        this.storageService = new NextCloudStorageService(webDav, httpClient, logger, configuration);*/
+        this.storageService = storageService;
     }
 
     [HttpPost("metadata/project")]

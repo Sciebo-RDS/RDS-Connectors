@@ -14,7 +14,7 @@ using DorisScieboRdsConnector.Models;
 
 public class NextCloudStorageService : IStorageService
 {
-    private readonly ILogger logger;
+    private readonly ILogger<NextCloudStorageService> logger;
     private IWebDavClient webDav;
     private HttpClient httpClient;
     private IConfiguration configuration;
@@ -23,7 +23,7 @@ public class NextCloudStorageService : IStorageService
     private string? nextCloudUser;
     private string? webDavBaseUrl;
 
-    public NextCloudStorageService(IWebDavClient webDav, HttpClient httpClient, ILogger logger, IConfiguration configuration)
+    public NextCloudStorageService(IWebDavClient webDav, HttpClient httpClient, ILogger<NextCloudStorageService> logger, IConfiguration configuration)
     {
         this.logger = logger;
         this.webDav = webDav;
@@ -52,13 +52,15 @@ public class NextCloudStorageService : IStorageService
     }
 
     public async Task<bool> ProjectExist(string projectId){
+        logger.LogInformation($"ProjectExist PROPFIND {webDavBaseUrl}/doris-datasets/{projectId}");
         var result = await webDav.Propfind($"{webDavBaseUrl}/doris-datasets/{projectId}");
         if(result.IsSuccessful == false){
-            return false;
+            throw new Exception($"ERROR checking for webdav dir {webDavBaseUrl}/doris-datasets/{projectId}");
         }
-
+  
         foreach (var res in result.Resources)
         {
+            logger.LogInformation($"ProjectExist res {res.Uri}");
             if(res.IsCollection){
                 return true;
             }
@@ -112,6 +114,7 @@ public class NextCloudStorageService : IStorageService
 
     public async Task SetupProject(string projectId)
     {
+        logger.LogInformation($"📁 IN SetupProject projectId: {projectId}");
         if(await ProjectExist(projectId)){
             logger.LogInformation($"📁SetupProject projectId exists: {projectId}");
             return;
