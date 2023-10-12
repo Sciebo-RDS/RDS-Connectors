@@ -33,7 +33,7 @@ public class S3StorageService : IStorageService
         await minio.PutObjectAsync(args).ConfigureAwait(false);
     }
 
-    public async Task<bool> ProjectExist(string projectId){
+    public async Task<bool> ProjectExists(string projectId){
         return await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(projectId));
         throw new NotImplementedException();
     }

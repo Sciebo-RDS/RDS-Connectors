@@ -10,7 +10,7 @@ public interface IStorageService
 {
     Task SetupProject(string projectId);
 
-    Task<bool> ProjectExist(string projectId);
+    Task<bool> ProjectExists(string projectId);
 
     Task AddFile(string projectId, string fileName, string contentType, Stream stream);
 
