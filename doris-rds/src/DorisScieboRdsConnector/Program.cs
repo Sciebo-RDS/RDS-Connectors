@@ -1,4 +1,4 @@
-using DorisScieboRdsConnector.Services.ScieboRds;
+﻿using DorisScieboRdsConnector.Services.ScieboRds;
 using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,9 +11,9 @@ builder.Services.AddControllers();
 
 builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>();
 builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>();
+builder.Services.AddHttpClient<OcsApiClient>();
 
 var app = builder.Build();
-//app.UseAuthorization(); // TODO is this needed?
 app.MapControllers();
 
 // Register connector with Sciebo RDS
