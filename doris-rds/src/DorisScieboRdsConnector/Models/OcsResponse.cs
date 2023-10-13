@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text.Json.Nodes;
 
 namespace DorisScieboRdsConnector.Models;
 
@@ -56,4 +55,4 @@ public record OcsShare(
     string? url,
     int mail_send,
     int hide_download,
-    JsonArray? attributes);
+    string? attributes);
