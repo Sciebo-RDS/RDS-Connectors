@@ -27,6 +27,7 @@ public class OcsApiClient
         this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
         this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         this.httpClient.DefaultRequestHeaders.Add("OCS-APIRequest", "true");
+        this.httpClient.DefaultRequestHeaders.Add("Host", "localhost");
         this.httpClient.BaseAddress = new Uri(configuration.GetValue<string>("NextCloud:BaseUrl")!);
     }
 

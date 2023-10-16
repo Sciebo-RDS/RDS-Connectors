@@ -36,6 +36,7 @@ public class NextCloudStorageService : IStorageService
         string authString = nextCloudUser + ":" + configuration.GetValue<string>("NextCloud:Password");
         string basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
+        httpClient.DefaultRequestHeaders.Add("Host", "localhost");
 
         webDavClient = new WebDavClient(httpClient);
     }
