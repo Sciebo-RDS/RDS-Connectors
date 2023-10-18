@@ -1,15 +1,14 @@
-﻿using DorisScieboRdsConnector.Models;
+﻿namespace DorisScieboRdsConnector.Services.Storage;
+
+using DorisScieboRdsConnector.Models;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
-
-namespace DorisScieboRdsConnector.Services.Storage;
 
 public class OcsApiClient
 {
@@ -33,7 +32,7 @@ public class OcsApiClient
 
     public async Task<OcsGetResponse> GetShares(OcsGetSharesRequest request)
     {
-        var uri = AddGetParams(sharesUri, request);
+        var uri = AddQueryParameters(sharesUri, request);
         var result = await httpClient.GetFromJsonAsync<OcsGetResponse>(uri).ConfigureAwait(false);
 
         return result!;
@@ -41,29 +40,24 @@ public class OcsApiClient
 
     public async Task<OcsPostResponse> CreateShare(OcsCreateShareRequest request)
     {
-        var uri = AddGetParams(sharesUri, request);
+        var uri = AddQueryParameters(sharesUri, request);
         using var result = await httpClient.PostAsync(uri, null).ConfigureAwait(false);
 
         return (await result.Content.ReadFromJsonAsync<OcsPostResponse>())!;
     }
 
-    private static string AddGetParams(string uri, object? parameters = null)
+    private static string AddQueryParameters(string uri, object parameters)
     {
-        if (parameters != null)
-        {
-            var jsonDocument = JsonSerializer.SerializeToDocument(parameters);
-            var propertyValues = jsonDocument.RootElement.EnumerateObject()
-                .Where(v => 
-                    v.Value.ValueKind != JsonValueKind.Null && 
-                    v.Value.ValueKind != JsonValueKind.Undefined)
-                .Select(v => 
-                    UrlEncoder.Default.Encode(v.Name) + "=" + 
-                    UrlEncoder.Default.Encode(v.Value.ToString()));
+        var jsonDocument = JsonSerializer.SerializeToDocument(parameters);
+        var queryValues = jsonDocument.RootElement.EnumerateObject()
+            .Where(v =>
+                v.Value.ValueKind != JsonValueKind.Null &&
+                v.Value.ValueKind != JsonValueKind.Undefined)
+            .Select(v =>
+                Uri.EscapeDataString(v.Name) + "=" +
+                Uri.EscapeDataString(v.Value.ToString()));
 
-            uri = uri + "?" + string.Join("&", propertyValues);
-        }
-
-        return uri;
+        return uri + "?" + string.Join("&", queryValues);
     }
 }
 

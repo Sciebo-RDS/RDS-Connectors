@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿namespace DorisScieboRdsConnector.Models;
 
-namespace DorisScieboRdsConnector.Models;
+using Microsoft.AspNetCore.Http;
 
 public record AddFileRequest(
     PortUserName UserId,

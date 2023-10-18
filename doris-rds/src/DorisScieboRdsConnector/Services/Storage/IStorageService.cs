@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+﻿namespace DorisScieboRdsConnector.Services.Storage;
+
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using DorisScieboRdsConnector.Models;
-
-namespace DorisScieboRdsConnector.Services.Storage;
-
 
 public interface IStorageService
 {

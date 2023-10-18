@@ -1,3 +1,5 @@
+namespace DorisScieboRdsConnector.Controllers;
+
 using DorisScieboRdsConnector.Models;
 using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Mvc;
@@ -6,8 +8,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-
-namespace DorisScieboRdsConnector.Controllers;
 
 [ApiController]
 [Route("/")]
@@ -31,7 +31,7 @@ public class ConnectorController : ControllerBase
         // Create storage space/path/bucket based on project identifier
         // Do we need tagging or something similar when creating the bucket?
         logger.LogInformation("CreateProject (POST /metadata/project), userId: {userId}, metadata: {metadata}", request.UserId, request.Metadata);
- 
+
         static string GenerateProjectId()
         {
             string hashCode = string.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
@@ -39,12 +39,12 @@ public class ConnectorController : ControllerBase
         }
 
         string projectId = GenerateProjectId();
-        
+
         while (await storageService.ProjectExists(projectId))
         {
             projectId = GenerateProjectId();
         }
-        
+
         logger.LogInformation("CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {nextCloudUser}",
             projectId, configuration.GetValue<string>("NextCloud:User"));
         await storageService.SetupProject(projectId);
@@ -55,7 +55,7 @@ public class ConnectorController : ControllerBase
             Metadata = new JsonObject() // TODO How is this used by sciebo-rds?
         });
     }
-    
+
     [HttpPatch("metadata/project/{projectId}")]
     public async Task<IActionResult> UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
@@ -69,8 +69,8 @@ public class ConnectorController : ControllerBase
         var files = await storageService.GetFiles(projectId);
         //var manifest = RoCrateHelper.GenerateRoCrateManifest(projectId, this.configuration["Domain"], "usertmp", files);
 
-        return Ok(new 
-        { 
+        return Ok(new
+        {
             Metadata = new JsonObject() // TODO What should we return here? How is this used by sciebo-rds?
         });
     }
@@ -102,11 +102,11 @@ public class ConnectorController : ControllerBase
     [HttpPost("metadata/project/{projectId}/files")]
     [Consumes("multipart/form-data")]
     //public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
-    public async Task<IActionResult> AddFile([FromRoute]string projectId)
+    public async Task<IActionResult> AddFile([FromRoute] string projectId)
     {
         if (Request.Form.Files.Count == 0)
         {
-            return NotFound(new 
+            return NotFound(new
             {
                 Success = false,
                 Message = "Missing file in POST"
@@ -115,19 +115,21 @@ public class ConnectorController : ControllerBase
 
         if (!await storageService.ProjectExists(projectId))
         {
-            return NotFound(new 
+            return NotFound(new
             {
                 Success = false,
                 Message = $"Project {projectId} does not exist in storage"
             });
         }
-        
+
         foreach (var file in Request.Form.Files)
         {
-            logger.LogInformation("📄AddFile IFormFile file: {fileName}", file.FileName);
-            await storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
+            var fileName = "data/" + file.FileName;
+            logger.LogInformation("📄AddFile IFormFile file: {fileName}", fileName);
+
+            await storageService.AddFile(projectId, fileName, file.ContentType, file.OpenReadStream());
         }
-    
+
         return Ok(new
         {
             Success = true
@@ -135,10 +137,10 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpGet("metadata/project/{projectId}/files")]
-    public async Task<IActionResult> GetFiles([FromRoute]string projectId)
+    public async Task<IActionResult> GetFiles([FromRoute] string projectId)
     {
         logger.LogInformation("GetFiles (GET /metadata/project/{projectId}), projectId: {projectId}", projectId, projectId);
-        
+
         var files = await storageService.GetFiles(projectId);
 
         return Ok(new

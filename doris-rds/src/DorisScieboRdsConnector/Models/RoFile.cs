@@ -1,6 +1,6 @@
-﻿using System;
+﻿namespace DorisScieboRdsConnector.Models;
 
-namespace DorisScieboRdsConnector.Models;
+using System;
 
 public record RoFile(
     string Id,

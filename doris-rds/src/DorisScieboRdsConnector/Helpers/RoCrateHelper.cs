@@ -1,9 +1,8 @@
-using System;
+namespace DorisScieboRdsConnector.Helpers;
+
+using DorisScieboRdsConnector.Models;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
-using DorisScieboRdsConnector.Models;
-
-namespace DorisScieboRdsConnector.Helpers;
 
 public static class RoCrateHelper
 {

@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-
 namespace DorisScieboRdsConnector.Models;
+
+using System.Collections.Generic;
 
 public record OcsGetResponse(
     OcsGetBody ocs);

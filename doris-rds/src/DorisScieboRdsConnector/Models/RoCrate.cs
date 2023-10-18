@@ -1,7 +1,7 @@
+namespace DorisScieboRdsConnector.Models;
+
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
-
-namespace DorisScieboRdsConnector.Models;
 
 class RoCrate
 {
