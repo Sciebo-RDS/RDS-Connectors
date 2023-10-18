@@ -34,8 +34,9 @@ public class ConnectorController : ControllerBase
 
         static string GenerateProjectId()
         {
-            string hashCode = string.Format("{0:X}", Guid.NewGuid().ToString().GetHashCode()).ToLower();
-            return $"{DateTime.UtcNow.Year}-{hashCode}";
+            var bytes = new byte[4];
+            new Random().NextBytes(bytes);
+            return $"{DateTime.UtcNow.Year}-{Convert.ToHexString(bytes).ToLower()}";
         }
 
         string projectId = GenerateProjectId();

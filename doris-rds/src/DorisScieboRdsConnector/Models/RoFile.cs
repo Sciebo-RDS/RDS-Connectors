@@ -4,7 +4,8 @@ using System;
 
 public record RoFile(
     string Id,
-    string? ContentSize = null,
+    RoFileType Type,
+    long ContentSize,
     DateTime? DateModified = null,
     string? EncodingFormat = null,
     string? Sha256 = null,

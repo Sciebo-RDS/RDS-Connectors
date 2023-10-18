@@ -113,10 +113,10 @@ class RoCrate
         {
             ["@type"] = "File",
             ["@id"] = file.Id,
-            ["additionalType"] = new JsonArray("Data")
+            ["additionalType"] = file.Type.ToString()
         };
 
-        if (file.ContentSize != null) fileObject["contentSize"] = file.ContentSize.ToString();
+        fileObject["contentSize"] = file.ContentSize.ToString();
         if (file.DateModified != null) fileObject["dateModified"] = file.DateModified;
         if (file.EncodingFormat != null) fileObject["encodingFormat"] = file.EncodingFormat;
         if (file.Url != null) fileObject["url"] = file.Url.AbsoluteUri;

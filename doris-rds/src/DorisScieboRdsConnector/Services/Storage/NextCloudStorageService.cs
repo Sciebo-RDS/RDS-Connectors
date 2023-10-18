@@ -20,11 +20,10 @@ public class NextCloudStorageService : IStorageService
     private readonly IWebDavClient webDavClient;
     private readonly OcsApiClient ocsClient;
 
-    private readonly string baseUrl;
-    private readonly string webDavBaseUrl;
+    private readonly Uri webDavBaseUri;
 
-    private const string sha256ManifestFileName = "manifest-sha256.txt";
     private const string rootDirectoryName = "doris-datasets";
+    private const string linkShareLabel = "dataset-share";
 
     public NextCloudStorageService(
         HttpClient httpClient,
@@ -35,9 +34,9 @@ public class NextCloudStorageService : IStorageService
         this.logger = logger;
         this.ocsClient = ocsClient;
 
-        baseUrl = configuration.GetValue<string>("NextCloud:BaseUrl")!;
+        var baseUri = new Uri(configuration.GetValue<string>("NextCloud:BaseUrl")!);
         string nextCloudUser = configuration.GetValue<string>("NextCloud:User")!;
-        webDavBaseUrl = $"{baseUrl}/remote.php/dav/files/{nextCloudUser}";
+        webDavBaseUri = new Uri(baseUri, $"remote.php/dav/files/{Uri.EscapeDataString(nextCloudUser)}/");
 
         string authString = nextCloudUser + ":" + configuration.GetValue<string>("NextCloud:Password");
         string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
@@ -49,38 +48,36 @@ public class NextCloudStorageService : IStorageService
 
     public async Task SetupProject(string projectId)
     {
-        if (await ProjectExists(projectId))
+        var baseUri = GetProjectWebDavUri(projectId);
+
+        if (await DirectoryExists(baseUri))
         {
             logger.LogInformation("📁SetupProject projectId exists: {projectId}", projectId);
-            return;
         }
-
-        var baseUri = GetWebDavBaseUri(projectId);
-
-        logger.LogInformation("📁SetupProject create WebDav: {baseUri}", baseUri);
-
-        await webDavClient.Mkcol(baseUri);
+        else
+        {
+            logger.LogInformation("📁SetupProject create WebDav: {baseUri}", baseUri);
+            var result = await webDavClient.Mkcol(baseUri);
+        }
+       
         //await webDavClient.Mkcol($"{webDavBaseUrl}/doris-datasets/{projectId}/data");
 
-        // Ensure that manifest-sha256.txt exists so that we can update it later in AddFile
-        await WriteSha256ManifestFile(baseUri, new MemoryStream());
-
-        await GetOrCreateLinkShareToken(projectId);
+        await GetOrCreateLinkShare(projectId);
     }
 
     public Task<bool> ProjectExists(string projectId)
     {
-        return DirectoryExists(GetWebDavBaseUri(projectId));
+        return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        async Task EnsureDirectoryExists(Uri baseUri, Uri fileUri)
+        async Task EnsureDirectoryExists(Uri baseUri, Uri uploadUri)
         {
             var directoriesToCreate = new Stack<string>();
-            string uri = fileUri.AbsoluteUri;
+            string uri = uploadUri.AbsoluteUri;
 
-            while ( (uri = uri[..uri.LastIndexOf('/')]) != baseUri.AbsoluteUri )
+            while (!baseUri.AbsoluteUri.Equals(uri = uri[..uri.LastIndexOf('/')]))
             {
                 if (await DirectoryExists(new Uri(uri)))
                 {
@@ -106,10 +103,14 @@ public class NextCloudStorageService : IStorageService
                     .Replace("\r", "%0D");
             }
 
-            async Task<IDictionary<string, string>> GetExistingValues(Uri baseUri)
+            async Task<IDictionary<string, string>> GetExistingValues(Uri fileUri)
             {
-                // TODO assume that file exists, or create here if not found?
-                var file = await webDavClient.GetRawFile(new Uri(baseUri, sha256ManifestFileName));
+                var file = await webDavClient.GetRawFile(fileUri);
+
+                if (file.StatusCode == 404)
+                {
+                    return new Dictionary<string, string>();
+                }
 
                 using var reader = new StreamReader(file.Stream, Encoding.UTF8);
                 var result = new Dictionary<string, string>();
@@ -125,16 +126,17 @@ public class NextCloudStorageService : IStorageService
                 }
 
                 return result;
-            }          
+            }
 
-            var values = await GetExistingValues(baseUri);
+            var fileUri = new Uri(baseUri, "manifest-sha256.txt");
+            var values = await GetExistingValues(fileUri);
             values[PercentEncodePath(fileName)] = Convert.ToHexString(sha256Hash);
-            byte[] newContent = Encoding.UTF8.GetBytes(string.Join("\n", values.Select(k => k.Value + " " + k.Key)));
+            var newContent = Encoding.UTF8.GetBytes(string.Join("\n", values.Select(k => k.Value + " " + k.Key)));
 
-            await WriteSha256ManifestFile(baseUri, new MemoryStream(newContent));
+            await webDavClient.PutFile(fileUri, new MemoryStream(newContent), "text/plain");
         }
 
-        Uri baseUri = GetWebDavBaseUri(projectId);
+        Uri baseUri = GetProjectWebDavUri(projectId);
         var uploadUri = new Uri(baseUri, string.Join('/', fileName.Split('/').Select(Uri.EscapeDataString)));
 
         if (!baseUri.IsBaseOf(uploadUri))
@@ -170,14 +172,16 @@ public class NextCloudStorageService : IStorageService
 
     public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
     {
-        //TODO: private/public should be handled in some way...
         var fileList = new List<RoFile>();
-        var uri = GetWebDavBaseUri(projectId);
+        var uri = GetProjectWebDavUri(projectId);
 
-        string shareToken = await GetOrCreateLinkShareToken(projectId);
+        string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
         logger.LogInformation("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
 
-        var result = await webDavClient.Propfind(uri, new() { ApplyTo = ApplyTo.Propfind.ResourceAndAncestors });
+        var result = await webDavClient.Propfind(uri, new()
+        { 
+            ApplyTo = ApplyTo.Propfind.ResourceAndAncestors 
+        });
 
         if (result.IsSuccessful)
         {
@@ -197,10 +201,12 @@ public class NextCloudStorageService : IStorageService
 
                 fileList.Add(new(
                     Id: filePath,
-                    ContentSize: res.ContentLength.ToString(),
+                    Type: RoFileType.data,
+                    ContentSize: res.ContentLength.GetValueOrDefault(),
                     EncodingFormat: res.ContentType,
                     DateModified: res.LastModifiedDate,
-                    Url: new Uri($"{baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
+                    Url: null
+                //Url: new Uri($"{baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
                 ));
             }
         }
@@ -213,9 +219,9 @@ public class NextCloudStorageService : IStorageService
         return fileList;
     }
 
-    private Uri GetWebDavBaseUri(string projectId) =>
-         new($"{webDavBaseUrl}/{Uri.EscapeDataString(rootDirectoryName)}/{Uri.EscapeDataString(projectId)}/", UriKind.Absolute);
-   
+    private Uri GetProjectWebDavUri(string projectId) =>
+         new(webDavBaseUri, $"{Uri.EscapeDataString(rootDirectoryName)}/{Uri.EscapeDataString(projectId)}/");
+
     private async Task<bool> DirectoryExists(Uri uri)
     {
         var result = await webDavClient.Propfind(uri, new()
@@ -229,57 +235,32 @@ public class NextCloudStorageService : IStorageService
             result.Resources.First().IsCollection;
     }
 
-    private Task WriteSha256ManifestFile(Uri baseUri, Stream data)
+    public async Task<OcsShare> GetOrCreateLinkShare(string projectId)
     {
-        return webDavClient.PutFile(new Uri(baseUri, sha256ManifestFileName), data, "text/plain");
+        return await GetLinkShare(projectId) ?? await CreateLinkShare(projectId);
     }
 
-    public async Task<string> GetOrCreateLinkShareToken(string projectId)
+    private async Task<OcsShare?> GetLinkShare(string projectId)
     {
-        OcsShare? share = await GetOcsShare(projectId);
-
-        if (share is null)
+        var response = await ocsClient.GetShares(new()
         {
-            share = await CreateOcsShare(projectId);
-        }
-
-        if (share?.token is not null)
-        {
-            return share.token;
-        }
-
-        logger.LogError($"GetOcsShareToken ERROR for {projectId}");
-        return "NO-TOKEN";
-    }
-
-    private async Task<OcsShare?> GetOcsShare(string projectId)
-    {
-        //TODO: public/private handling
-        var ocsResponse = await ocsClient.GetShares(new() 
-        { 
             path = GetLinkSharePath(projectId)
         });
 
-        foreach (var share in ocsResponse.ocs.data)
-        {
-            if (share.label == "dataset-share")
-            {
-                return share;
-            }
-        }
-
-        return null;
+        return response.ocs.data.FirstOrDefault(share => share.label == linkShareLabel);
     }
 
-    private async Task<OcsShare> CreateOcsShare(string projectId)
+    private async Task<OcsShare> CreateLinkShare(string projectId)
     {
         var ocsResponse = await ocsClient.CreateShare(new()
         {
             path = GetLinkSharePath(projectId),
-            permissions = 1,
-            shareType = 3,
+            permissions = 1, // read
+            shareType = 3, // public link
             publicUpload = false,
-            label = "dataset-share"
+            label = linkShareLabel,
+            // Using RandomNumberGenerator to generate a cryptographically secure random string
+            password = Convert.ToHexString(RandomNumberGenerator.GetBytes(16))
         });
 
         return ocsResponse.ocs.data;
