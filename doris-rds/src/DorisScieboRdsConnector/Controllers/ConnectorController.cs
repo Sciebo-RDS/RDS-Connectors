@@ -125,10 +125,9 @@ public class ConnectorController : ControllerBase
 
         foreach (var file in Request.Form.Files)
         {
-            var fileName = "data/" + file.FileName;
-            logger.LogInformation("📄AddFile IFormFile file: {fileName}", fileName);
+            logger.LogInformation("📄AddFile IFormFile file: {fileName}", file.FileName);
 
-            await storageService.AddFile(projectId, fileName, file.ContentType, file.OpenReadStream());
+            await storageService.AddFile(projectId, file.FileName, RoFileType.data, file.ContentType, file.OpenReadStream());
         }
 
         return Ok(new

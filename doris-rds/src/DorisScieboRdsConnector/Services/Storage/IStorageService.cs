@@ -11,7 +11,7 @@ public interface IStorageService
 
     Task<bool> ProjectExists(string projectId);
 
-    Task AddFile(string projectId, string fileName, string contentType, Stream stream);
+    Task AddFile(string projectId, string fileName, RoFileType type, string contentType, Stream stream);
 
     Task<IEnumerable<RoFile>> GetFiles(string projectId);
 }
