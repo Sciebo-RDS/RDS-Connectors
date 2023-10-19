@@ -1,45 +1,36 @@
 namespace DorisScieboRdsConnector.RoCrate;
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 
-class RoCrate
+public class RoCrate
 {
-    public string? eduPersonPrincipalName;
-    public string? projectId;
-    public string? domain;
-    public string? label;
-    private IEnumerable<RoFile> files;
+    public string EduPersonPrincipalName { get; }
+    public string ProjectId { get; }
+    public string Domain { get; }
 
-    public RoCrate(string projectId, string eduPersonPrincipalName, string domain, string label)
-    {
-        files = new List<RoFile>();
-    }
+    public IEnumerable<RoFile> Files { get; }
 
-    public IEnumerable<RoFile> Files
+    public RoCrate(string projectId, string eduPersonPrincipalName, string domain, IEnumerable<RoFile> files)
     {
-        get
-        {
-            return files;
-        }
-        set
-        {
-            files = value;
-        }
+        EduPersonPrincipalName = eduPersonPrincipalName;
+        ProjectId = projectId;
+        Domain = domain;
+        Files = files;
     }
 
     public JsonObject ToGraph()
     {
-        //return new JsonObject();
-
         var graph = new JsonArray();
 
         graph.Add(new JsonObject
         {
             ["@type"] = "CreativeWork",
             ["@id"] = "ro-crate-metadata.json",
-            ["identifier"] = System.Guid.NewGuid(),
-            ["alternateName"] = projectId,
+            ["identifier"] = Guid.NewGuid(),
+            ["alternateName"] = ProjectId,
             ["conformsTo"] = new JsonObject
             {
                 ["@id"] = "https://w3id.org/ro/crate/1.1"
@@ -50,49 +41,40 @@ class RoCrate
             },
             ["publisher"] = new JsonObject
             {
-                ["@id"] = "https://{domain}"
+                ["@id"] = $"https://{Domain}"
             },
-            ["creator"] = new JsonArray
-        {
-            new JsonObject
+            ["creator"] = new JsonObject
             {
-                ["@id"] = $"https://{domain}#{eduPersonPrincipalName}"
+                ["@id"] = $"https://{Domain}#{EduPersonPrincipalName}"
             }
-        }
         });
 
         graph.Add(new JsonObject
         {
             ["@type"] = "Organization",
-            ["@id"] = $"https://{domain}",
-            ["identifier"] = new JsonArray
-        {
-            new JsonObject
+            ["@id"] = $"https://{Domain}",
+            ["identifier"] = new JsonObject
             {
-                ["@id"] = $"#domain-{domain}"
+                ["@id"] = $"#domain-{Domain}"
             }
-        },
         });
 
         graph.Add(new JsonObject
         {
             ["@type"] = "PropertyValue",
-            ["@id"] = $"#domain-{domain}",
+            ["@id"] = $"#domain-{Domain}",
             ["propertyID"] = "domain",
-            ["value"] = domain
+            ["value"] = Domain
         });
 
         graph.Add(new JsonObject
         {
             ["@type"] = "Person",
-            ["@id"] = $"https://{domain}#{eduPersonPrincipalName}",
-            ["identifier"] = new JsonArray
-        {
-            new JsonObject
+            ["@id"] = $"https://{Domain}#{EduPersonPrincipalName}",
+            ["identifier"] = new JsonObject
             {
                 ["@id"] = "#eduPersonPrincipalName-0" //reference to PropertyValue holding edugain id
             }
-        }
         });
 
         graph.Add(new JsonObject
@@ -100,26 +82,28 @@ class RoCrate
             ["@type"] = "PropertyValue",
             ["@id"] = "#eduPersonPrincipalName-0",
             ["propertyID"] = "eduPersonPrincipalName",
-            ["value"] = eduPersonPrincipalName
+            ["value"] = EduPersonPrincipalName
         });
 
         var hasPart = new JsonArray();
 
-        foreach (var file in files)
+        foreach (var file in Files)
         {
+            string id = string.Join('/', file.Id.Split('/').Select(Uri.EscapeDataString));
+
             hasPart.Add(new JsonObject
             {
-                ["@id"] = file.Id
+                ["@id"] = id
             });
 
             var fileObject = new JsonObject
             {
                 ["@type"] = "File",
-                ["@id"] = file.Id,
-                ["additionalType"] = file.Type.ToString()
+                ["@id"] = id,
+                ["additionalType"] = file.Type.ToString(),
+                ["contentSize"] = file.ContentSize.ToString()
             };
 
-            fileObject["contentSize"] = file.ContentSize.ToString();
             if (file.DateModified != null) fileObject["dateModified"] = file.DateModified;
             if (file.EncodingFormat != null) fileObject["encodingFormat"] = file.EncodingFormat;
             if (file.Url != null) fileObject["url"] = file.Url.AbsoluteUri;
@@ -139,6 +123,5 @@ class RoCrate
             ["@context"] = "https://w3id.org/ro/crate/1.1/context",
             ["@graph"] = graph
         };
-
     }
 }
