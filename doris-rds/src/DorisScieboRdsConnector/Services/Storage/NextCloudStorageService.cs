@@ -57,11 +57,9 @@ public class NextCloudStorageService : IStorageService
         else
         {
             logger.LogInformation("📁SetupProject create WebDav: {baseUri}", baseUri);
-            var result = await webDavClient.Mkcol(baseUri);
+            await webDavClient.Mkcol(baseUri);
         }
        
-        //await webDavClient.Mkcol($"{webDavBaseUrl}/doris-datasets/{projectId}/data");
-
         await GetOrCreateLinkShare(projectId);
     }
 
@@ -70,7 +68,7 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
-    public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
+    public async Task AddFile(string projectId, string fileName, RoFileType type, string contentType, Stream stream)
     {
         async Task EnsureDirectoryExists(Uri baseUri, Uri uploadUri)
         {
@@ -93,7 +91,7 @@ public class NextCloudStorageService : IStorageService
             }
         }
 
-        async Task UpdateSha256File(Uri baseUri, byte[] sha256Hash)
+        async Task UpdateSha256File(Uri baseUri, string filePath, byte[] sha256Hash)
         {
             static string PercentEncodePath(string path)
             {
@@ -130,18 +128,21 @@ public class NextCloudStorageService : IStorageService
 
             var fileUri = new Uri(baseUri, "manifest-sha256.txt");
             var values = await GetExistingValues(fileUri);
-            values[PercentEncodePath(fileName)] = Convert.ToHexString(sha256Hash);
+            values[PercentEncodePath(filePath)] = Convert.ToHexString(sha256Hash);
             var newContent = Encoding.UTF8.GetBytes(string.Join("\n", values.Select(k => k.Value + " " + k.Key)));
 
             await webDavClient.PutFile(fileUri, new MemoryStream(newContent), "text/plain");
         }
 
         Uri baseUri = GetProjectWebDavUri(projectId);
-        var uploadUri = new Uri(baseUri, string.Join('/', fileName.Split('/').Select(Uri.EscapeDataString)));
+        string filePath = type.ToString() + "/" + fileName;
+        var uploadUri = new Uri(baseUri,
+            // To generate a valid URI, we must encode each part of the file path
+            string.Join('/', filePath.Split('/').Select(Uri.EscapeDataString)));
 
         if (!baseUri.IsBaseOf(uploadUri))
         {
-            throw new ArgumentException(nameof(fileName), "Illegal file name.");
+            throw new ArgumentException("Illegal file name.", nameof(fileName));
         }
 
         // TODO Error handling. When do we need to abort etc?
@@ -156,7 +157,7 @@ public class NextCloudStorageService : IStorageService
 
         var result = await webDavClient.PutFile(uploadUri, stream, contentType);
 
-        await UpdateSha256File(baseUri, hashStream.Hash()!);
+        await UpdateSha256File(baseUri, filePath, hashStream.Hash()!);
 
         if (result.IsSuccessful)
         {
@@ -173,40 +174,49 @@ public class NextCloudStorageService : IStorageService
     public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
     {
         var fileList = new List<RoFile>();
-        var uri = GetProjectWebDavUri(projectId);
+        var baseUri = GetProjectWebDavUri(projectId);
 
         string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
         logger.LogInformation("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
 
-        var result = await webDavClient.Propfind(uri, new()
-        { 
-            ApplyTo = ApplyTo.Propfind.ResourceAndAncestors 
+        var result = await webDavClient.Propfind(baseUri, new()
+        {
+            ApplyTo = ApplyTo.Propfind.ResourceAndAncestors
         });
 
         if (result.IsSuccessful)
         {
-            foreach (var res in result.Resources)
+            foreach (var res in result.Resources.Where(r => !r.IsCollection))
             {
-                if (res.IsCollection)
+                // Get the relative path from the project directory
+                string filePath = baseUri.MakeRelativeUri(new Uri(baseUri, res.Uri)).ToString();
+
+                RoFileType type;
+                if (filePath.StartsWith("data/"))
                 {
-                    logger.LogDebug("📁 directory {dirUri}", res.Uri);
+                    type = RoFileType.data;
+                }
+                else if (filePath.StartsWith("documentation/"))
+                {
+                    type = RoFileType.documentation;
+                }
+                else
+                {
+                    // Do not include files outside of data and documentation directories
                     continue;
                 }
 
-                // get the relative path from the dataset directory
-                string filePath = res.Uri.Split(uri.PathAndQuery)[1].TrimStart('/');
-
-                string fileName = filePath.Split('/')[^1];
-                string dirPath = string.Join('/', filePath.Split('/')[..^1]);
+                int slashIndex = filePath.LastIndexOf('/');
+                string dirPath = filePath[..slashIndex];
+                string fileName = filePath[(slashIndex + 1)..];
 
                 fileList.Add(new(
                     Id: filePath,
-                    Type: RoFileType.data,
+                    Type: type,
                     ContentSize: res.ContentLength.GetValueOrDefault(),
                     EncodingFormat: res.ContentType,
-                    DateModified: res.LastModifiedDate,
-                    Url: null
-                //Url: new Uri($"{baseUrl}/s/{shareToken}/download?path=%2F{dirPath}&files={fileName}")
+                    DateModified: res.LastModifiedDate?.ToUniversalTime(),
+                    Url: new Uri(baseUri, $"/s/{shareToken}/download?path={Uri.EscapeDataString(dirPath)}&files={Uri.EscapeDataString(fileName)}")
                 ));
             }
         }
