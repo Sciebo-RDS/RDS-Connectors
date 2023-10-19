@@ -1,6 +1,8 @@
 namespace DorisScieboRdsConnector.Services.Storage;
 
 using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.Services.Storage.OcsApi;
+using DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
@@ -266,7 +268,7 @@ public class NextCloudStorageService : IStorageService
 
     private async Task<OcsShare> CreateLinkShare(string projectId)
     {
-        var ocsResponse = await ocsClient.CreateShare(new()
+        var response = await ocsClient.CreateShare(new()
         {
             path = GetLinkSharePath(projectId),
             permissions = 1, // read
@@ -277,7 +279,7 @@ public class NextCloudStorageService : IStorageService
             password = Convert.ToHexString(RandomNumberGenerator.GetBytes(16))
         });
 
-        return ocsResponse.ocs.data;
+        return response.ocs.data;
     }
 
     private static string GetLinkSharePath(string projectId) => $"{rootDirectoryName}/{projectId}";

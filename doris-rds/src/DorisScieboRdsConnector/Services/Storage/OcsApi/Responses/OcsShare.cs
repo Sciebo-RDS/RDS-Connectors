@@ -1,25 +1,4 @@
-namespace DorisScieboRdsConnector.Models;
-
-using System.Collections.Generic;
-
-public record OcsGetResponse(
-    OcsGetBody ocs);
-
-public record OcsPostResponse(
-    OcsPostBody ocs);
-
-public record OcsGetBody(
-    OcsMeta meta,
-    List<OcsShare> data);
-
-public record OcsPostBody(
-    OcsMeta meta,
-    OcsShare data);
-
-public record OcsMeta(
-    string status,
-    int statuscode,
-    string? message);
+﻿namespace DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
 
 public record OcsShare(
     string id,

@@ -52,7 +52,7 @@ public class ScieboRdsService : IScieboRdsService
                 icon = icon,
                 infoUrl = "https://doris.snd.gu.se",
                 helpUrl = "https://doris.snd.gu.se",
-                displayName = "Doris connector"
+                displayName = "Doris"
             }
         });
 

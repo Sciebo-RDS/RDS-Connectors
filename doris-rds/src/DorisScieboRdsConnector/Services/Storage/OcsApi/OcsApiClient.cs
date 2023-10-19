@@ -1,8 +1,10 @@
-﻿namespace DorisScieboRdsConnector.Services.Storage;
+﻿namespace DorisScieboRdsConnector.Services.Storage.OcsApi;
 
-using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.Services.Storage.OcsApi.Requests;
+using DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -30,20 +32,20 @@ public class OcsApiClient
         this.httpClient.BaseAddress = new Uri(configuration.GetValue<string>("NextCloud:BaseUrl")!);
     }
 
-    public async Task<OcsGetResponse> GetShares(OcsGetSharesRequest request)
+    public async Task<OcsResponse<IEnumerable<OcsShare>>> GetShares(OcsGetSharesRequest request)
     {
         var uri = AddQueryParameters(sharesUri, request);
-        var result = await httpClient.GetFromJsonAsync<OcsGetResponse>(uri).ConfigureAwait(false);
+        var result = await httpClient.GetFromJsonAsync<OcsResponse<IEnumerable<OcsShare>>>(uri).ConfigureAwait(false);
 
         return result!;
     }
 
-    public async Task<OcsPostResponse> CreateShare(OcsCreateShareRequest request)
+    public async Task<OcsResponse<OcsShare>> CreateShare(OcsCreateShareRequest request)
     {
         var uri = AddQueryParameters(sharesUri, request);
         using var result = await httpClient.PostAsync(uri, null).ConfigureAwait(false);
 
-        return (await result.Content.ReadFromJsonAsync<OcsPostResponse>())!;
+        return (await result.Content.ReadFromJsonAsync<OcsResponse<OcsShare>>())!;
     }
 
     private static string AddQueryParameters(string uri, object parameters)
@@ -60,28 +62,3 @@ public class OcsApiClient
         return uri + "?" + string.Join("&", queryValues);
     }
 }
-
-public class OcsGetSharesRequest
-{
-    public bool? include_tags { get; set; }
-    public string? path { get; set; }
-    public bool? reshares { get; set; }
-    public bool? shared_with_me { get; set; }
-    public bool? subfiles { get; set; }
-}
-
-public class OcsCreateShareRequest
-{
-    public string? attributes { get; set; }
-    public string? expireDate { get; set; }
-    public string? label { get; set; }
-    public string? note { get; set; }
-    public string? password { get; set; }
-    public string? path { get; set; }
-    public int? permissions { get; set; }
-    public bool? publicUpload { get; set; }
-    public bool? sendPasswordByTalk { get; set; }
-    public int? shareType { get; set; }
-    public string? shareWith { get; set; }
-};
-
