@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.RoCrate;
 
 public interface IStorageService
 {

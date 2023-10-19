@@ -1,4 +1,4 @@
-﻿namespace DorisScieboRdsConnector.Models;
+﻿namespace DorisScieboRdsConnector.Controllers.Models;
 
 public record PortUserName(string UserId)
 {

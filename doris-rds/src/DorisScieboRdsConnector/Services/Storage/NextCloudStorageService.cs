@@ -1,6 +1,6 @@
 namespace DorisScieboRdsConnector.Services.Storage;
 
-using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.RoCrate;
 using DorisScieboRdsConnector.Services.Storage.OcsApi;
 using DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
 using Microsoft.Extensions.Configuration;

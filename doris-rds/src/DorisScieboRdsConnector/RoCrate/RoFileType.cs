@@ -1,4 +1,4 @@
-﻿namespace DorisScieboRdsConnector.Models;
+﻿namespace DorisScieboRdsConnector.RoCrate;
 
 public enum RoFileType
 {

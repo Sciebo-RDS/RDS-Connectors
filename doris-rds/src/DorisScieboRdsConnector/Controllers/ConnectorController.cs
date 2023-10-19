@@ -1,6 +1,7 @@
 namespace DorisScieboRdsConnector.Controllers;
 
-using DorisScieboRdsConnector.Models;
+using DorisScieboRdsConnector.Controllers.Models;
+using DorisScieboRdsConnector.RoCrate;
 using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -27,9 +28,6 @@ public class ConnectorController : ControllerBase
     [HttpPost("metadata/project")]
     public async Task<IActionResult> CreateProject(PortUserNameWithMetadata request)
     {
-        // Generate project identifier
-        // Create storage space/path/bucket based on project identifier
-        // Do we need tagging or something similar when creating the bucket?
         logger.LogInformation("CreateProject (POST /metadata/project), userId: {userId}, metadata: {metadata}", request.UserId, request.Metadata);
 
         static string GenerateProjectId()
@@ -60,10 +58,6 @@ public class ConnectorController : ControllerBase
     [HttpPatch("metadata/project/{projectId}")]
     public async Task<IActionResult> UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
-        // Can we create a profile with only a project label? We can use the label in Doris when selecting manifest.
-        // Store the metadata somewhere, so that we can access project label later when generating the Doris
-        // RO-Crate manifest? Or can we fetch it from Sciebo RDS somehow?
-
         logger.LogInformation("UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
@@ -79,10 +73,6 @@ public class ConnectorController : ControllerBase
     [HttpPut("metadata/project/{projectId}")]
     public async Task<NoContentResult> PublishProject(string projectId, PortUserName request)
     {
-        // Check that project has been created in storage
-        // Generate RO-Crate manifest with file metadata from storage and possibly project label from Describo manifest
-        // Post manifest to index server at SND
-
         var files = await storageService.GetFiles(projectId);
 
         logger.LogInformation("PublishProject (PUT /metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
@@ -154,4 +144,13 @@ public class ConnectorController : ControllerBase
     {
         return new JsonResult(configuration.AsEnumerable());
     }
+
+    // Endpoints that are not implemented, are they needed?
+    // GET metadata/project/{projectId} - Get all metadata
+    // DELETE metadata/project/{projectId} - Remove a project from this service
+    // DELETE metadata/project/{projectId}/files - ?
+    // GET metadata/project/{projectId}/files/{fileId} - Get specified file
+    // PATCH metadata/project/{projectId}/files/{fileId} - ?
+    // DELETE metadata/project/{projectId}/files/{fileId} - ?
+    // GET metadata/project - Returns all projects available in the service for user
 }
