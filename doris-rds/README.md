@@ -1,6 +1,6 @@
 ## DORIS RDS-connector
 
-This connector is used in SUNET for publishing data to S3 buckets and pushing ro-crate manifest to SND:s manifest index.
+This connector is used in SUNET for publishing data to a dedicated NextCloud directory and pushing RO-Crate metadata to SND/Doris.
 
 ### Describo profile
 
