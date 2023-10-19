@@ -56,7 +56,7 @@ public class NextCloudStorageService : IStorageService
         }
         else
         {
-            logger.LogInformation("📁SetupProject create WebDav: {baseUri}", baseUri);
+            logger.LogInformation("📁SetupProject create directory: {baseUri}", baseUri);
             await webDavClient.Mkcol(baseUri);
         }
        
@@ -101,37 +101,11 @@ public class NextCloudStorageService : IStorageService
                     .Replace("\r", "%0D");
             }
 
-            async Task<IDictionary<string, string>> GetExistingValues(Uri fileUri)
-            {
-                var file = await webDavClient.GetRawFile(fileUri);
-
-                if (file.StatusCode == 404)
-                {
-                    return new Dictionary<string, string>();
-                }
-
-                using var reader = new StreamReader(file.Stream, Encoding.UTF8);
-                var result = new Dictionary<string, string>();
-
-                string? line;
-                while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync()))
-                {
-                    int index = line.IndexOf(' ');
-                    string hash = line[..index];
-                    string fileName = line[(index + 1)..];
-
-                    result[fileName] = hash;
-                }
-
-                return result;
-            }
-
-            var fileUri = new Uri(baseUri, "manifest-sha256.txt");
-            var values = await GetExistingValues(fileUri);
-            values[PercentEncodePath(filePath)] = Convert.ToHexString(sha256Hash);
+            var values = await GetSha256ManifestValues(baseUri);
+            values[PercentEncodePath(filePath)] = Convert.ToHexString(sha256Hash).ToLower();
             var newContent = Encoding.UTF8.GetBytes(string.Join("\n", values.Select(k => k.Value + " " + k.Key)));
 
-            await webDavClient.PutFile(fileUri, new MemoryStream(newContent), "text/plain");
+            await webDavClient.PutFile(GetSha256ManifestUri(baseUri), new MemoryStream(newContent), "text/plain");
         }
 
         Uri baseUri = GetProjectWebDavUri(projectId);
@@ -179,6 +153,8 @@ public class NextCloudStorageService : IStorageService
         string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
         logger.LogInformation("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
 
+        var sha256Lookup = await GetSha256ManifestValues(baseUri);
+
         var result = await webDavClient.Propfind(baseUri, new()
         {
             ApplyTo = ApplyTo.Propfind.ResourceAndAncestors
@@ -214,8 +190,9 @@ public class NextCloudStorageService : IStorageService
                     Id: filePath,
                     Type: type,
                     ContentSize: res.ContentLength.GetValueOrDefault(),
-                    EncodingFormat: res.ContentType,
                     DateModified: res.LastModifiedDate?.ToUniversalTime(),
+                    EncodingFormat: res.ContentType,
+                    Sha256: sha256Lookup.ContainsKey(filePath) ? sha256Lookup[filePath] : null,
                     Url: new Uri(baseUri, $"/s/{shareToken}/download?path={Uri.EscapeDataString(dirPath)}&files={Uri.EscapeDataString(fileName)}")
                 ));
             }
@@ -245,7 +222,34 @@ public class NextCloudStorageService : IStorageService
             result.Resources.First().IsCollection;
     }
 
-    public async Task<OcsShare> GetOrCreateLinkShare(string projectId)
+    private async Task<IDictionary<string, string>> GetSha256ManifestValues(Uri baseUri)
+    {
+        var result = new Dictionary<string, string>();
+
+        var file = await webDavClient.GetRawFile(GetSha256ManifestUri(baseUri));
+
+        if (file.StatusCode == 404)
+        {
+            return result;
+        }
+
+        using var reader = new StreamReader(file.Stream, Encoding.UTF8);
+        string? line;
+        while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync()))
+        {
+            int index = line.IndexOf(' ');
+            string hash = line[..index];
+            string fileName = line[(index + 1)..];
+
+            result[fileName] = hash;
+        }
+
+        return result;
+    }
+
+    private static Uri GetSha256ManifestUri(Uri baseUri) => new(baseUri, "manifest-sha256.txt");
+
+    private async Task<OcsShare> GetOrCreateLinkShare(string projectId)
     {
         return await GetLinkShare(projectId) ?? await CreateLinkShare(projectId);
     }
