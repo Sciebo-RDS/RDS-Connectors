@@ -5,5 +5,5 @@ using System.Text.Json.Nodes;
 
 public interface IDorisService
 {
-    Task PostManifest(JsonObject manifest);
+    Task PostRoCrate(JsonObject manifest);
 }

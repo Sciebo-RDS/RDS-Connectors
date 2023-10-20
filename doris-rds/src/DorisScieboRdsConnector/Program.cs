@@ -1,4 +1,5 @@
-﻿using DorisScieboRdsConnector.Services.ScieboRds;
+﻿using DorisScieboRdsConnector.Configuration;
+using DorisScieboRdsConnector.Services.ScieboRds;
 using DorisScieboRdsConnector.Services.Storage;
 using DorisScieboRdsConnector.Services.Storage.OcsApi;
 using Microsoft.AspNetCore.Builder;
@@ -13,6 +14,12 @@ builder.Services.AddControllers();
 builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>();
 builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>();
 builder.Services.AddHttpClient<OcsApiClient>();
+
+builder.Services.AddOptions<NextCloudSettings>()
+    .Bind(builder.Configuration.GetSection(NextCloudSettings.ConfigurationSection))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 
 var app = builder.Build();
 app.MapControllers();

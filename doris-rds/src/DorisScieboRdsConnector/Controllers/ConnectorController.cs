@@ -1,11 +1,13 @@
 namespace DorisScieboRdsConnector.Controllers;
 
+using DorisScieboRdsConnector.Configuration;
 using DorisScieboRdsConnector.Controllers.Models;
 using DorisScieboRdsConnector.RoCrate;
 using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -16,12 +18,18 @@ public class ConnectorController : ControllerBase
 {
     private readonly ILogger logger;
     private readonly IConfiguration configuration;
+    private readonly NextCloudSettings nextCloudSettings;
     private readonly IStorageService storageService;
 
-    public ConnectorController(ILogger<ConnectorController> logger, IConfiguration configuration, IStorageService storageService)
+    public ConnectorController(
+        ILogger<ConnectorController> logger, 
+        IConfiguration configuration,
+        IOptions<NextCloudSettings> nextCloudSettings,
+        IStorageService storageService)
     {
         this.logger = logger;
         this.configuration = configuration;
+        this.nextCloudSettings = nextCloudSettings.Value;
         this.storageService = storageService;
     }
 
@@ -45,7 +53,7 @@ public class ConnectorController : ControllerBase
         }
 
         logger.LogInformation("CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {nextCloudUser}",
-            projectId, configuration.GetValue<string>("NextCloud:User"));
+            projectId, nextCloudSettings.User);
         await storageService.SetupProject(projectId);
 
         return Ok(new

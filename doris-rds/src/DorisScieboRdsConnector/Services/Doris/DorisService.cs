@@ -17,7 +17,7 @@ public class DorisService : IDorisService
         this.configuration = configuration;
     }
 
-    public async Task PostManifest(JsonObject manifest)
+    public async Task PostRoCrate(JsonObject manifest)
     {
         string? url = configuration["ManifestIndex:Url"];
         string? apiKey = configuration["ManifestIndex:ApiKey"];

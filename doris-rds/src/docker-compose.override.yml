@@ -6,14 +6,14 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - Domain=test.se
-      - ScieboRds__TokenStorageUrl
+      - ScieboRds__TokenStorageUrl=http://localhost/dummy
       - ScieboRds__ConnectorServiceName=port-doris
       - NextCloud__BaseUrl=http://nextcloud
       - NextCloud__User=datasets
-      - NextCloud__Password=NDqXt-pkoZA-5bbgM-WftmY-m75q8
-      - ManifestIndex__Url=https://snd-storage-metadata-index-test-snd-dev.apps.k8s.gu.se
-      - ManifestIndex__ApiKey=key
+      - NextCloud__Password=datasets123
+      - Doris__Domain=test.se
+      - Doris__ApiUrl=https://dummy.se
+      - Doris__ApiKey=key
       - Logging__LogLevel__Default=Debug
     ports:
       - 8080:80
