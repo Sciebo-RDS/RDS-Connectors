@@ -6,6 +6,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - ScieboRds__RegisterConnectorOnStartup=false
       - ScieboRds__TokenStorageUrl=http://localhost/dummy
       - ScieboRds__ConnectorServiceName=port-doris
       - NextCloud__BaseUrl=http://nextcloud

@@ -1,4 +1,4 @@
-﻿namespace DorisScieboRdsConnector.Services.Storage.OcsApi.Requests;
+﻿namespace DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Requests;
 
 public class OcsCreateShareRequest
 {

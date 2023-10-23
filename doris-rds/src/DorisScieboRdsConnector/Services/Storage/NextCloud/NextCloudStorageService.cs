@@ -1,10 +1,13 @@
-namespace DorisScieboRdsConnector.Services.Storage;
+namespace DorisScieboRdsConnector.Services.Storage.NextCloud;
 
+using DorisScieboRdsConnector.Configuration;
 using DorisScieboRdsConnector.RoCrate;
-using DorisScieboRdsConnector.Services.Storage.OcsApi;
-using DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
+using DorisScieboRdsConnector.Services.Storage;
+using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
+using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Responses;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,19 +34,15 @@ public class NextCloudStorageService : IStorageService
         HttpClient httpClient,
         OcsApiClient ocsClient,
         ILogger<NextCloudStorageService> logger,
-        IConfiguration configuration)
+        IOptions<NextCloudConfiguration> configuration)
     {
         this.logger = logger;
         this.ocsClient = ocsClient;
 
-        var baseUri = new Uri(configuration.GetValue<string>("NextCloud:BaseUrl")!);
-        string nextCloudUser = configuration.GetValue<string>("NextCloud:User")!;
-        webDavBaseUri = new Uri(baseUri, $"remote.php/dav/files/{Uri.EscapeDataString(nextCloudUser)}/");
+        httpClient.SetupForNextCloud(configuration.Value);
 
-        string authString = nextCloudUser + ":" + configuration.GetValue<string>("NextCloud:Password");
-        string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes(authString));
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
-        httpClient.DefaultRequestHeaders.Add("Host", "localhost");
+        var baseUri = configuration.Value.BaseUrl;
+        webDavBaseUri = new Uri(baseUri, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
 
         webDavClient = new WebDavClient(httpClient);
     }
@@ -61,7 +60,7 @@ public class NextCloudStorageService : IStorageService
             logger.LogInformation("📁SetupProject create directory: {baseUri}", baseUri);
             await webDavClient.Mkcol(baseUri);
         }
-       
+
         await GetOrCreateLinkShare(projectId);
     }
 

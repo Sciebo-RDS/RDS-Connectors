@@ -1,4 +1,4 @@
-﻿namespace DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
+﻿namespace DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Responses;
 
 public record OcsMeta(
     string status,

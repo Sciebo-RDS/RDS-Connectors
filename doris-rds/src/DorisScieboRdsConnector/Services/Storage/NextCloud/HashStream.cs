@@ -1,4 +1,4 @@
-﻿namespace DorisScieboRdsConnector.Services.Storage;
+﻿namespace DorisScieboRdsConnector.Services.Storage.NextCloud;
 
 using System.IO;
 using System.Security.Cryptography;

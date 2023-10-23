@@ -1,8 +1,11 @@
-﻿namespace DorisScieboRdsConnector.Services.Storage.OcsApi;
+﻿namespace DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
 
-using DorisScieboRdsConnector.Services.Storage.OcsApi.Requests;
-using DorisScieboRdsConnector.Services.Storage.OcsApi.Responses;
+using DorisScieboRdsConnector.Configuration;
+using DorisScieboRdsConnector.Services.Storage.NextCloud;
+using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Requests;
+using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Responses;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,18 +21,15 @@ public class OcsApiClient
 
     private const string sharesUri = "/ocs/v2.php/apps/files_sharing/api/v1/shares";
 
-    public OcsApiClient(HttpClient httpClient, IConfiguration configuration)
+    public OcsApiClient(HttpClient httpClient, IOptions<NextCloudConfiguration> configuration)
     {
         this.httpClient = httpClient;
 
-        string authString = configuration.GetValue<string>("NextCloud:User") + ":" + configuration.GetValue<string>("NextCloud:Password");
-        string basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));
+        this.httpClient.SetupForNextCloud(configuration.Value);
 
-        this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
         this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         this.httpClient.DefaultRequestHeaders.Add("OCS-APIRequest", "true");
-        this.httpClient.DefaultRequestHeaders.Add("Host", "localhost");
-        this.httpClient.BaseAddress = new Uri(configuration.GetValue<string>("NextCloud:BaseUrl")!);
+        this.httpClient.BaseAddress = configuration.Value.BaseUrl;
     }
 
     public async Task<OcsResponse<IEnumerable<OcsShare>>> GetShares(OcsGetSharesRequest request)

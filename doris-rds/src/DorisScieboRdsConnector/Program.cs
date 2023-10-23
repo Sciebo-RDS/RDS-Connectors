@@ -2,7 +2,8 @@
 using DorisScieboRdsConnector.Services.Doris;
 using DorisScieboRdsConnector.Services.ScieboRds;
 using DorisScieboRdsConnector.Services.Storage;
-using DorisScieboRdsConnector.Services.Storage.OcsApi;
+using DorisScieboRdsConnector.Services.Storage.NextCloud;
+using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
