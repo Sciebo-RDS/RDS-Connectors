@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DorisScieboRdsConnector.Configuration;
 
-public record NextCloudSettings
+public record NextCloudConfiguration
 {
     public const string ConfigurationSection = "NextCloud";
 

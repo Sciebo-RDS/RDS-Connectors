@@ -18,18 +18,18 @@ public class ConnectorController : ControllerBase
 {
     private readonly ILogger logger;
     private readonly IConfiguration configuration;
-    private readonly NextCloudSettings nextCloudSettings;
+    private readonly NextCloudConfiguration nextCloudConfiguration;
     private readonly IStorageService storageService;
 
     public ConnectorController(
         ILogger<ConnectorController> logger, 
         IConfiguration configuration,
-        IOptions<NextCloudSettings> nextCloudSettings,
+        IOptions<NextCloudConfiguration> nextCloudConfiguration,
         IStorageService storageService)
     {
         this.logger = logger;
         this.configuration = configuration;
-        this.nextCloudSettings = nextCloudSettings.Value;
+        this.nextCloudConfiguration = nextCloudConfiguration.Value;
         this.storageService = storageService;
     }
 
@@ -53,7 +53,7 @@ public class ConnectorController : ControllerBase
         }
 
         logger.LogInformation("CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {nextCloudUser}",
-            projectId, nextCloudSettings.User);
+            projectId, nextCloudConfiguration.User);
         await storageService.SetupProject(projectId);
 
         return Ok(new
