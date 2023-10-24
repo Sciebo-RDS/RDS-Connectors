@@ -124,9 +124,9 @@ public class NextCloudStorageService : IStorageService
         await EnsureDirectoryExists(baseUri, uploadUri);
 
         using var sha256 = SHA256.Create();
-        var hashStream = new HashStream(stream, sha256);
+        using var hashStream = new HashStream(stream, sha256);
 
-        var result = await webDavClient.PutFile(uploadUri, stream, contentType);
+        var result = await webDavClient.PutFile(uploadUri, hashStream, contentType);
 
         await UpdateSha256File(baseUri, filePath, hashStream.Hash()!);
 
