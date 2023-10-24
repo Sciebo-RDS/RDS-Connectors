@@ -12,6 +12,6 @@ internal static class HttpClientSetup
         string authString = configuration.User + ":" + configuration.Password;
         string basicAuth = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(authString));
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicAuth);
-        httpClient.DefaultRequestHeaders.Add("Host", "localhost");
+        httpClient.DefaultRequestHeaders.Add("Host", configuration.BaseUrl.Host);
     }
 }
