@@ -15,19 +15,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddHttpClient<IDorisService, DorisService>();
-builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>().ConfigureHttpMessageHandlerBuilder((c) =>
-     new HttpClientHandler()
-     {
-         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-     }
-   );
+builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>().ConfigureHttpMessageHandlerBuilder(builder =>
+{
+    builder.PrimaryHandler = new HttpClientHandler() 
+    { 
+        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true 
+    };
+    builder.Build();
+});
 
-builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>().ConfigureHttpMessageHandlerBuilder((c) =>
-     new HttpClientHandler()
-     {
-         ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-     }
-   );
+builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>().ConfigureHttpMessageHandlerBuilder(builder =>
+{
+    builder.PrimaryHandler = new HttpClientHandler()
+    {
+        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+    };
+    builder.Build();
+});
 
 builder.Services.AddHttpClient<OcsApiClient>();
 
