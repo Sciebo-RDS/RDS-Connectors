@@ -5,7 +5,6 @@ using DorisScieboRdsConnector.RoCrate;
 using DorisScieboRdsConnector.Services.Storage;
 using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
 using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Responses;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -13,7 +12,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -41,9 +39,7 @@ public class NextCloudStorageService : IStorageService
 
         httpClient.SetupForNextCloud(configuration.Value);
 
-        var baseUri = configuration.Value.BaseUrl;
-        webDavBaseUri = new Uri(baseUri, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
-
+        webDavBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
         webDavClient = new WebDavClient(httpClient);
     }
 

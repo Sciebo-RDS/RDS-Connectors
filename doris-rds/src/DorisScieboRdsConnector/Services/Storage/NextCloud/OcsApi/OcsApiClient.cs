@@ -4,7 +4,6 @@ using DorisScieboRdsConnector.Configuration;
 using DorisScieboRdsConnector.Services.Storage.NextCloud;
 using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Requests;
 using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi.Responses;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
