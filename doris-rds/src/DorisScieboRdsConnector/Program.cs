@@ -5,12 +5,21 @@ using DorisScieboRdsConnector.Services.Storage;
 using DorisScieboRdsConnector.Services.Storage.NextCloud;
 using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.IO;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpLogging(o =>
+{
+    o.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    o.MediaTypeOptions.AddText("multipart/form-data");
+});
 
 builder.Services.AddControllers();
 
@@ -37,6 +46,27 @@ builder.Services.AddOptions<ScieboRdsConfiguration>()
     .ValidateOnStart();
 
 var app = builder.Build();
+
+app.UseHttpLogging();
+
+app.Use(async (context, next) =>
+{
+    // Must read request body here to ensure that it is logged by the HTTP logger.
+    var request = context.Request;
+
+    if (!request.Body.CanSeek)
+    {
+        request.EnableBuffering();
+    }
+
+    request.Body.Position = 0;
+    var reader = new StreamReader(request.Body, Encoding.UTF8);
+    var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+    request.Body.Position = 0;
+
+    await next.Invoke();
+});
+
 app.MapControllers();
 
 // Register connector with Sciebo RDS
