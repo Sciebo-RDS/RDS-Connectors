@@ -8,31 +8,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Net.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
 builder.Services.AddHttpClient<IDorisService, DorisService>();
-builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>().ConfigureHttpMessageHandlerBuilder(builder =>
-{
-    builder.PrimaryHandler = new HttpClientHandler() 
-    { 
-        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true 
-    };
-    builder.Build();
-});
-
-builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>().ConfigureHttpMessageHandlerBuilder(builder =>
-{
-    builder.PrimaryHandler = new HttpClientHandler()
-    {
-        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-    };
-    builder.Build();
-});
-
+builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>();
+builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>();
 builder.Services.AddHttpClient<OcsApiClient>();
 
 builder.Services.AddOptions<DorisConfiguration>()
