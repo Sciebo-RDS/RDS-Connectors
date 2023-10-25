@@ -8,12 +8,24 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
+using System;
+using System.Net.Http;
+
+static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddHttpClient<IDorisService, DorisService>();
+builder.Services.AddHttpClient<IDorisService, DorisService>()
+    .AddPolicyHandler(GetRetryPolicy());
 builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>();
 builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>();
 builder.Services.AddHttpClient<OcsApiClient>();
