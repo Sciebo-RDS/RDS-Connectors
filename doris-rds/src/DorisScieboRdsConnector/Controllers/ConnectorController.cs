@@ -3,6 +3,7 @@ namespace DorisScieboRdsConnector.Controllers;
 using DorisScieboRdsConnector.Configuration;
 using DorisScieboRdsConnector.Controllers.Models;
 using DorisScieboRdsConnector.RoCrate;
+using DorisScieboRdsConnector.Services.Doris;
 using DorisScieboRdsConnector.Services.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -18,19 +19,25 @@ public class ConnectorController : ControllerBase
 {
     private readonly ILogger logger;
     private readonly IConfiguration configuration;
+    private readonly DorisConfiguration dorisConfiguration;
     private readonly NextCloudConfiguration nextCloudConfiguration;
     private readonly IStorageService storageService;
+    private readonly IDorisService dorisService;
 
     public ConnectorController(
         ILogger<ConnectorController> logger, 
         IConfiguration configuration,
+        IOptions<DorisConfiguration> dorisConfiguration,
         IOptions<NextCloudConfiguration> nextCloudConfiguration,
-        IStorageService storageService)
+        IStorageService storageService,
+        IDorisService dorisService)
     {
         this.logger = logger;
         this.configuration = configuration;
+        this.dorisConfiguration = dorisConfiguration.Value;
         this.nextCloudConfiguration = nextCloudConfiguration.Value;
         this.storageService = storageService;
+        this.dorisService = dorisService;
     }
 
     [HttpPost("metadata/project")]
@@ -69,7 +76,7 @@ public class ConnectorController : ControllerBase
         logger.LogInformation("UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
-        var files = await storageService.GetFiles(projectId);
+        //var files = await storageService.GetFiles(projectId);
         //var manifest = RoCrateHelper.GenerateRoCrateManifest(projectId, this.configuration["Domain"], "usertmp", files);
 
         return Ok(new
@@ -81,9 +88,22 @@ public class ConnectorController : ControllerBase
     [HttpPut("metadata/project/{projectId}")]
     public async Task<NoContentResult> PublishProject(string projectId, PortUserName request)
     {
-        var files = await storageService.GetFiles(projectId);
+        logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
 
-        logger.LogInformation("PublishProject (PUT /metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
+        var files = await storageService.GetFiles(projectId);
+        var roCrate = new RoCrate(projectId, request.UserId, dorisConfiguration.PrincipalDomain, files);
+
+        var json = roCrate.ToGraph();
+        logger.LogDebug("RO-Crate payload: {payload}", json);
+
+        if (dorisConfiguration.DorisApiEnabled)
+        {
+            await dorisService.PostRoCrate(roCrate.ToGraph());
+        }
+        else
+        {
+            logger.LogInformation("Doris API disabled, not posting RO-Crate payload.");
+        }
 
         return NoContent();
     }

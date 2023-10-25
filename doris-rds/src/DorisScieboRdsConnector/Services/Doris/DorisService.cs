@@ -20,9 +20,9 @@ public class DorisService : IDorisService
         this.httpClient.DefaultRequestHeaders.Add("X-API-Key", this.configuration.ApiKey);
     }
 
-    public async Task PostRoCrate(JsonObject manifest)
+    public async Task PostRoCrate(JsonObject roCrate)
     {
-        var response = await httpClient.PostAsJsonAsync(configuration.ApiUrl, manifest);
+        var response = await httpClient.PostAsJsonAsync(configuration.ApiUrl, roCrate);
 
         response.EnsureSuccessStatusCode();
     }

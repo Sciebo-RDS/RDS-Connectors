@@ -7,6 +7,7 @@ using DorisScieboRdsConnector.Services.Storage.NextCloud.OcsApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Extensions.Http;
@@ -32,6 +33,7 @@ builder.Services.AddHttpClient<OcsApiClient>();
 
 builder.Services.AddOptions<DorisConfiguration>()
     .Bind(builder.Configuration.GetSection(DorisConfiguration.ConfigurationSection))
+    .Validate(conf => !builder.Environment.IsProduction() || conf.DorisApiEnabled, "Can not disable Doris API in production.")
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
