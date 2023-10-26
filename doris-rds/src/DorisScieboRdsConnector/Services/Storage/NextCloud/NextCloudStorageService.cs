@@ -46,6 +46,7 @@ public class NextCloudStorageService : IStorageService
     public async Task SetupProject(string projectId)
     {
         var baseUri = GetProjectWebDavUri(projectId);
+        var dataUri = new Uri(baseUri, "data");
 
         if (await DirectoryExists(baseUri))
         {
@@ -55,6 +56,16 @@ public class NextCloudStorageService : IStorageService
         {
             logger.LogInformation("📁SetupProject create directory: {baseUri}", baseUri);
             await webDavClient.Mkcol(baseUri);
+        }
+
+        if (await DirectoryExists(dataUri))
+        {
+            logger.LogInformation("📁SetupProject data folder exists: {projectId}", projectId);
+        }
+        else
+        {
+            logger.LogInformation("📁SetupProject create directory: {dataUri}", dataUri);
+            await webDavClient.Mkcol(dataUri);
         }
 
         await GetOrCreateLinkShare(projectId);
