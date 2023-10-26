@@ -46,7 +46,7 @@ public class NextCloudStorageService : IStorageService
     public async Task SetupProject(string projectId)
     {
         var baseUri = GetProjectWebDavUri(projectId);
-        var dataUri = new Uri(baseUri, "data");
+        var dataUri = new Uri(baseUri, "data/");
 
         if (await DirectoryExists(baseUri))
         {
@@ -157,13 +157,14 @@ public class NextCloudStorageService : IStorageService
     {
         var fileList = new List<RoFile>();
         var baseUri = GetProjectWebDavUri(projectId);
+        var linkShareUri = new Uri(baseUri, "data/");
 
         string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
         logger.LogInformation("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
 
         var sha256Lookup = await GetSha256ManifestValues(baseUri);
 
-        var result = await webDavClient.Propfind(new Uri(baseUri, "data"), new()
+        var result = await webDavClient.Propfind(linkShareUri, new()
         {
             ApplyTo = ApplyTo.Propfind.ResourceAndAncestors
         });
@@ -172,19 +173,23 @@ public class NextCloudStorageService : IStorageService
         {
             foreach (var res in result.Resources.Where(r => !r.IsCollection))
             {
-                // Get the relative path from the project directory
-                string filePath = baseUri.MakeRelativeUri(new Uri(baseUri, res.Uri)).ToString();
-                int slashIndex = filePath.LastIndexOf('/');
-                string dirPath = filePath[..slashIndex];
-                string fileName = filePath[(slashIndex + 1)..];
+                var resultUri = new Uri(baseUri, res.Uri);
+                // Relative path from project directory
+                string id = baseUri.MakeRelativeUri(resultUri).ToString();
+                // Relative path from link share directory
+                string relativePath = linkShareUri.MakeRelativeUri(resultUri).ToString();
+                // Calculate path and fileName from relativePath
+                int slashIndex = relativePath.LastIndexOf('/');
+                string path = slashIndex >= 0 ? relativePath[..slashIndex] : "/";
+                string fileName = relativePath[(slashIndex + 1)..];
 
                 fileList.Add(new(
-                    Id: filePath,
+                    Id: id,
                     ContentSize: res.ContentLength.GetValueOrDefault(),
                     DateModified: res.LastModifiedDate?.ToUniversalTime(),
                     EncodingFormat: res.ContentType,
-                    Sha256: sha256Lookup.ContainsKey(filePath) ? sha256Lookup[filePath] : null,
-                    Url: new Uri(baseUri, $"/s/{shareToken}/download?path={Uri.EscapeDataString(dirPath)}&files={Uri.EscapeDataString(fileName)}")
+                    Sha256: sha256Lookup.ContainsKey(id) ? sha256Lookup[id] : null,
+                    Url: new Uri(baseUri, $"/s/{shareToken}/download?path={Uri.EscapeDataString(path)}&files={Uri.EscapeDataString(fileName)}")
                 ));
             }
         }
