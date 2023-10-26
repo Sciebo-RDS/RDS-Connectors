@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json;
 using WebDav;
 
 public class NextCloudStorageService : IStorageService
@@ -76,8 +77,43 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
+    private async Task StoreRoCrateMetadata(string projectId, Stream stream){
+        var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), "ro-crate-metadata.json");
+        await webDavClient.PutFile(roCrateUploadUri, stream, "application/ld+json");
+    }
+
+    public async Task<string?> GetProjectName(string projectId){
+        var roCrateUri = new Uri(GetProjectWebDavUri(projectId), "ro-crate-metadata.json");
+        var file = await webDavClient.GetRawFile(roCrateUri);
+
+        if (file.StatusCode == 404)
+        {
+            return null;
+        }
+
+        using var reader = new StreamReader(file.Stream, Encoding.UTF8);
+        var roCrate = JsonDocument.Parse(reader.ReadToEnd());
+        JsonElement graph = roCrate.RootElement.GetProperty("@graph");
+        foreach (JsonElement element in graph.EnumerateArray())
+        {
+            if (element.TryGetProperty("@id", out JsonElement id))
+            {
+                if (id.GetString() == "ro-crate-metadata.json")
+                {
+                    return element.GetProperty("name").ToString();
+                }
+            }
+        }
+        return null;
+    }
+
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
+        if(fileName.Equals("ro-crate-metadata.json")){
+            await StoreRoCrateMetadata(projectId, stream);
+            return;
+        }
+
         async Task EnsureDirectoryExists(Uri baseUri, Uri uploadUri)
         {
             var directoriesToCreate = new Stack<string>();
