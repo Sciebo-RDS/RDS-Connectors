@@ -145,7 +145,7 @@ public class ConnectorController : ControllerBase
         {
             logger.LogInformation("📄AddFile IFormFile file: {fileName}", file.FileName);
 
-            await storageService.AddFile(projectId, file.FileName, RoFileType.data, file.ContentType, file.OpenReadStream());
+            await storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
         }
 
         return Ok(new

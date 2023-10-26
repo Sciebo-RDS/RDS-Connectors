@@ -100,7 +100,7 @@ public class RoCrate
             {
                 ["@type"] = "File",
                 ["@id"] = id,
-                ["additionalType"] = file.Type.ToString(),
+                ["additionalType"] = "data",
                 ["contentSize"] = file.ContentSize.ToString()
             };
 

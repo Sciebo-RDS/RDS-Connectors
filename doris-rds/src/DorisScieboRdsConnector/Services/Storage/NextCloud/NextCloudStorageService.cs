@@ -65,7 +65,7 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
-    public async Task AddFile(string projectId, string fileName, RoFileType type, string contentType, Stream stream)
+    public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
         async Task EnsureDirectoryExists(Uri baseUri, Uri uploadUri)
         {
@@ -106,7 +106,7 @@ public class NextCloudStorageService : IStorageService
         }
 
         Uri baseUri = GetProjectWebDavUri(projectId);
-        string filePath = type.ToString() + "/" + fileName;
+        string filePath = "data/" + fileName;
         var uploadUri = new Uri(baseUri,
             // To generate a valid URI, we must encode each part of the file path
             string.Join('/', filePath.Split('/').Select(Uri.EscapeDataString)));
@@ -152,7 +152,7 @@ public class NextCloudStorageService : IStorageService
 
         var sha256Lookup = await GetSha256ManifestValues(baseUri);
 
-        var result = await webDavClient.Propfind(baseUri, new()
+        var result = await webDavClient.Propfind(new Uri(baseUri, "data"), new()
         {
             ApplyTo = ApplyTo.Propfind.ResourceAndAncestors
         });
@@ -163,29 +163,12 @@ public class NextCloudStorageService : IStorageService
             {
                 // Get the relative path from the project directory
                 string filePath = baseUri.MakeRelativeUri(new Uri(baseUri, res.Uri)).ToString();
-
-                RoFileType type;
-                if (filePath.StartsWith("data/"))
-                {
-                    type = RoFileType.data;
-                }
-                else if (filePath.StartsWith("documentation/"))
-                {
-                    type = RoFileType.documentation;
-                }
-                else
-                {
-                    // Do not include files outside of data and documentation directories
-                    continue;
-                }
-
                 int slashIndex = filePath.LastIndexOf('/');
                 string dirPath = filePath[..slashIndex];
                 string fileName = filePath[(slashIndex + 1)..];
 
                 fileList.Add(new(
                     Id: filePath,
-                    Type: type,
                     ContentSize: res.ContentLength.GetValueOrDefault(),
                     DateModified: res.LastModifiedDate?.ToUniversalTime(),
                     EncodingFormat: res.ContentType,
@@ -277,5 +260,5 @@ public class NextCloudStorageService : IStorageService
         return response.ocs.data;
     }
 
-    private static string GetLinkSharePath(string projectId) => $"{rootDirectoryName}/{projectId}";
+    private static string GetLinkSharePath(string projectId) => $"{rootDirectoryName}/{projectId}/data";
 }
