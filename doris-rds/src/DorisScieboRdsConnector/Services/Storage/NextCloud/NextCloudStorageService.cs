@@ -29,6 +29,8 @@ public class NextCloudStorageService : IStorageService
     private const string rootDirectoryName = "doris-datasets";
     private const string linkShareLabel = "dataset-share";
 
+    private const string roCrateFileName = "ro-crate-metadata.json";
+
     public NextCloudStorageService(
         HttpClient httpClient,
         OcsApiClient ocsClient,
@@ -77,13 +79,13 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
-    private async Task StoreRoCrateMetadata(string projectId, Stream stream){
-        var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), "ro-crate-metadata.json");
+    public async Task StoreRoCrateMetadata(string projectId, Stream stream){
+        var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
         await webDavClient.PutFile(roCrateUploadUri, stream, "application/ld+json");
     }
 
     public async Task<string?> GetProjectName(string projectId){
-        var roCrateUri = new Uri(GetProjectWebDavUri(projectId), "ro-crate-metadata.json");
+        var roCrateUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
         var file = await webDavClient.GetRawFile(roCrateUri);
 
         if (file.StatusCode == 404)
@@ -98,7 +100,7 @@ public class NextCloudStorageService : IStorageService
         {
             if (element.TryGetProperty("@id", out JsonElement id))
             {
-                if (id.GetString() == "ro-crate-metadata.json")
+                if (id.GetString() == roCrateFileName)
                 {
                     return element.GetProperty("name").ToString();
                 }
@@ -109,7 +111,7 @@ public class NextCloudStorageService : IStorageService
 
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        if(fileName.Equals("ro-crate-metadata.json")){
+        if(fileName.Equals(roCrateFileName)){
             await StoreRoCrateMetadata(projectId, stream);
             return;
         }
