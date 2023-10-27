@@ -7,17 +7,24 @@ using System.Text.Json.Nodes;
 
 public class RoCrate
 {
-    public string EduPersonPrincipalName { get; }
     public string ProjectId { get; }
-    public string Domain { get; }
+    public string EduPersonPrincipalName { get; }
+    public string PrincipalDomain { get; }
+    public string? Name { get; }
 
     public IEnumerable<RoFile> Files { get; }
 
-    public RoCrate(string projectId, string eduPersonPrincipalName, string domain, IEnumerable<RoFile> files)
+    public RoCrate(
+        string projectId, 
+        string eduPersonPrincipalName, 
+        string principalDomain,
+        string? name,
+        IEnumerable<RoFile> files)
     {
         EduPersonPrincipalName = eduPersonPrincipalName;
         ProjectId = projectId;
-        Domain = domain;
+        PrincipalDomain = principalDomain;
+        Name = name;
         Files = files;
     }
 
@@ -25,11 +32,12 @@ public class RoCrate
     {
         var graph = new JsonArray();
 
-        graph.Add(new JsonObject
+        var metadataFileDesriptor = new JsonObject
         {
             ["@type"] = "CreativeWork",
             ["@id"] = "ro-crate-metadata.json",
             ["identifier"] = Guid.NewGuid(),
+            ["name"] = Name,
             ["alternateName"] = ProjectId,
             ["conformsTo"] = new JsonObject
             {
@@ -41,36 +49,40 @@ public class RoCrate
             },
             ["publisher"] = new JsonObject
             {
-                ["@id"] = $"https://{Domain}"
+                ["@id"] = $"https://{PrincipalDomain}"
             },
             ["creator"] = new JsonObject
             {
-                ["@id"] = $"https://{Domain}#{EduPersonPrincipalName}"
+                ["@id"] = $"https://{PrincipalDomain}#{EduPersonPrincipalName}"
             }
-        });
+        };
+
+        if (Name != null) metadataFileDesriptor["name"] = Name;
+
+        graph.Add(metadataFileDesriptor);
 
         graph.Add(new JsonObject
         {
             ["@type"] = "Organization",
-            ["@id"] = $"https://{Domain}",
+            ["@id"] = $"https://{PrincipalDomain}",
             ["identifier"] = new JsonObject
             {
-                ["@id"] = $"#domain-{Domain}"
+                ["@id"] = $"#domain-{PrincipalDomain}"
             }
         });
 
         graph.Add(new JsonObject
         {
             ["@type"] = "PropertyValue",
-            ["@id"] = $"#domain-{Domain}",
+            ["@id"] = $"#domain-{PrincipalDomain}",
             ["propertyID"] = "domain",
-            ["value"] = Domain
+            ["value"] = PrincipalDomain
         });
 
         graph.Add(new JsonObject
         {
             ["@type"] = "Person",
-            ["@id"] = $"https://{Domain}#{EduPersonPrincipalName}",
+            ["@id"] = $"https://{PrincipalDomain}#{EduPersonPrincipalName}",
             ["identifier"] = new JsonObject
             {
                 ["@id"] = "#eduPersonPrincipalName-0" //reference to PropertyValue holding edugain id

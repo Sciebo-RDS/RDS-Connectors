@@ -95,7 +95,8 @@ public class ConnectorController : ControllerBase
         logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
 
         var files = await storageService.GetFiles(projectId);
-        var roCrate = new RoCrate(projectId, request.UserId, dorisConfiguration.PrincipalDomain, files);
+        var name = await storageService.GetProjectName(projectId);
+        var roCrate = new RoCrate(projectId, request.UserId, dorisConfiguration.PrincipalDomain, name, files);
 
         var json = roCrate.ToGraph();
         logger.LogDebug("RO-Crate payload: {payload}", json);
