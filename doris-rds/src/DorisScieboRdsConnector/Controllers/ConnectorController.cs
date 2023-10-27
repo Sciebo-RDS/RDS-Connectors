@@ -1,14 +1,18 @@
 namespace DorisScieboRdsConnector.Controllers;
 
 using DorisScieboRdsConnector.Configuration;
+using DorisScieboRdsConnector.Controllers.Filters;
 using DorisScieboRdsConnector.Controllers.Models;
 using DorisScieboRdsConnector.RoCrate;
 using DorisScieboRdsConnector.Services.Doris;
 using DorisScieboRdsConnector.Services.Storage;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -108,44 +112,64 @@ public class ConnectorController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Handle upload of each file via the connector
-    /// for the DORIS connector each file will be stored in a S3-bucket.
-    /// </summary>
-    /// <param name="projectId">The id for the project (matches the S3 bucket name)</param>
-    /// <param name="files">A file</param>
-    /// <param name="fileName">Not used but suplied by the sender</param>
-    /// <param name="folder">Not used but suplied by the sender</param>
-    /// <param name="userId">The user identifier</param>
-    /// <returns></returns>
+
     [HttpPost("metadata/project/{projectId}/files")]
-    [Consumes("multipart/form-data")]
-    //public IActionResult AddFile([FromRoute]string projectId, [FromForm]IFormFile files, [FromForm]string fileName, [FromForm]string folder, [FromForm]string userId)
+    // Disable form value model binding to ensure that files are not buffered
+    [DisableFormValueModelBinding]
+    // Disable request size limit to allow streaming large files
+    [DisableRequestSizeLimit] 
     public async Task<IActionResult> AddFile([FromRoute] string projectId)
     {
-        if (Request.Form.Files.Count == 0)
-        {
-            return NotFound(new
-            {
-                Success = false,
-                Message = "Missing file in POST"
-            });
-        }
-
         if (!await storageService.ProjectExists(projectId))
         {
             return NotFound(new
             {
                 Success = false,
-                Message = $"Project {projectId} does not exist in storage"
+                Message = $"Project {projectId} does not exist in storage."
             });
         }
 
-        foreach (var file in Request.Form.Files)
-        {
-            logger.LogInformation("📄AddFile IFormFile file: {fileName}", file.FileName);
+        var request = HttpContext.Request;
 
-            await storageService.AddFile(projectId, file.FileName, file.ContentType, file.OpenReadStream());
+        // Validation of Content-Type:
+        // 1. It must be a form-data request
+        // 2. A boundary should be found in the Content-Type
+        if (!request.HasFormContentType ||
+            !MediaTypeHeaderValue.TryParse(request.ContentType, out var mediaTypeHeader) ||
+            string.IsNullOrEmpty(mediaTypeHeader.Boundary.Value))
+        {
+            return new UnsupportedMediaTypeResult();
+        }
+
+        var boundary = HeaderUtilities.RemoveQuotes(mediaTypeHeader.Boundary.Value).Value!;
+        var reader = new MultipartReader(boundary, request.Body);
+        var section = await reader.ReadNextSectionAsync();
+        bool foundFiles = false;
+
+        while (section != null)
+        {
+            if (ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisposition) && 
+                contentDisposition.DispositionType.Equals("form-data") &&
+                !string.IsNullOrEmpty(contentDisposition.FileName.Value))
+            {
+                foundFiles = true;
+                string fileName = contentDisposition.FileName.Value;
+
+                logger.LogInformation("📄AddFile file: {fileName}", fileName);
+
+                await storageService.AddFile(projectId, fileName, section.ContentType ?? "application/octet-stream", section.Body);
+            }
+
+            section = await reader.ReadNextSectionAsync();
+        }
+
+        if (!foundFiles)
+        {
+            return BadRequest(new
+            {
+                Success = false,
+                Message = "No files data in the request."
+            });
         }
 
         return Ok(new
