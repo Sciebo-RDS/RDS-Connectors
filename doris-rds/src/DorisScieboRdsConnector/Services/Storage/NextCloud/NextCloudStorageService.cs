@@ -82,12 +82,14 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
-    public async Task StoreRoCrateMetadata(string projectId, Stream stream){
+    public async Task StoreRoCrateMetadata(string projectId, Stream stream)
+    {
         var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
         await webDavClient.PutFile(roCrateUploadUri, stream, "application/ld+json");
     }
 
-    public async Task<string?> GetProjectName(string projectId){
+    public async Task<string?> GetProjectName(string projectId)
+    {
         var roCrateUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
         var file = await webDavClient.GetRawFile(roCrateUri);
 
@@ -109,16 +111,12 @@ public class NextCloudStorageService : IStorageService
                 }
             }
         }
+
         return null;
     }
 
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
     {
-        if(fileName.Equals(roCrateFileName)){
-            await StoreRoCrateMetadata(projectId, stream);
-            return;
-        }
-
         async Task EnsureDirectoryExists(Uri baseUri, Uri destinationUri)
         {
             var directoriesToCreate = new Stack<string>();
@@ -195,6 +193,12 @@ public class NextCloudStorageService : IStorageService
             var newContent = Encoding.UTF8.GetBytes(string.Join("\n", values.Select(k => k.Value + " " + k.Key)));
 
             await webDavClient.PutFile(GetSha256ManifestUri(baseUri), new MemoryStream(newContent), "text/plain");
+        }
+
+        if (fileName == roCrateFileName)
+        {
+            await StoreRoCrateMetadata(projectId, stream);
+            return;
         }
 
         Uri baseUri = GetProjectWebDavUri(projectId);
