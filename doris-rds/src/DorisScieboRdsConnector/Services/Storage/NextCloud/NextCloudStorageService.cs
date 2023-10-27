@@ -24,10 +24,12 @@ public class NextCloudStorageService : IStorageService
     private readonly IWebDavClient webDavClient;
     private readonly OcsApiClient ocsClient;
 
-    private readonly Uri webDavBaseUri;
+    private readonly Uri webDavFilesBaseUri;
+    private readonly Uri webDavUploadsBaseUri;
 
     private const string rootDirectoryName = "doris-datasets";
     private const string linkShareLabel = "dataset-share";
+    private const int uploadChunkSize = 10 * 1024 * 1024;
 
     private const string roCrateFileName = "ro-crate-metadata.json";
 
@@ -42,7 +44,8 @@ public class NextCloudStorageService : IStorageService
 
         httpClient.SetupForNextCloud(configuration.Value);
 
-        webDavBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
+        webDavFilesBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
+        webDavUploadsBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/uploads/{Uri.EscapeDataString(configuration.Value.User)}/");
         webDavClient = new WebDavClient(httpClient);
     }
 
@@ -116,10 +119,10 @@ public class NextCloudStorageService : IStorageService
             return;
         }
 
-        async Task EnsureDirectoryExists(Uri baseUri, Uri uploadUri)
+        async Task EnsureDirectoryExists(Uri baseUri, Uri destinationUri)
         {
             var directoriesToCreate = new Stack<string>();
-            string uri = uploadUri.AbsoluteUri;
+            string uri = destinationUri.AbsoluteUri;
 
             while (!baseUri.AbsoluteUri.Equals(uri = uri[..uri.LastIndexOf('/')]))
             {
@@ -135,6 +138,46 @@ public class NextCloudStorageService : IStorageService
             {
                 await webDavClient.Mkcol(directoryUri);
             }
+        }
+
+        // Upload via NextClouds WebDav chunked upload API
+        async Task DoChunkedUpload(Uri destinationUri, Stream stream)
+        {
+            var uri = new Uri(webDavUploadsBaseUri, "doris-connector-upload-" + Guid.NewGuid().ToString() + "/");
+            // Add Destination header to all webdav calls to ensure we use v2 of the WebDav chunked upload API
+            var destinationHeader = new KeyValuePair<string, string>[] { new("Destination", destinationUri.AbsoluteUri) };
+
+            await webDavClient.Mkcol(uri, new()
+            {
+                Headers = destinationHeader
+            });
+
+            int chunk = 1;
+            byte[] buffer = new byte[uploadChunkSize];
+            int bufferPosition = 0;
+            int bytesRead;
+
+            do
+            {
+                bytesRead = await stream.ReadAsync(buffer, bufferPosition, buffer.Length - bufferPosition);
+                bufferPosition += bytesRead;
+
+                if (bufferPosition == buffer.Length ||
+                    bytesRead == 0 && bufferPosition > 0)
+                {
+                    using var chunkStream = new MemoryStream(buffer, 0, bufferPosition);
+                    await webDavClient.PutFile(new Uri(uri, chunk.ToString()), chunkStream, new PutFileParameters
+                    {
+                         Headers = destinationHeader
+                    });
+                    bufferPosition = 0;
+                    chunk++;
+                }
+            }
+            while (bytesRead > 0);
+
+            // Destination header is already included in Move by default
+            await webDavClient.Move(new Uri(uri, ".file"), destinationUri);
         }
 
         async Task UpdateSha256File(Uri baseUri, string filePath, byte[] sha256Hash)
@@ -156,39 +199,28 @@ public class NextCloudStorageService : IStorageService
 
         Uri baseUri = GetProjectWebDavUri(projectId);
         string filePath = "data/" + fileName;
-        var uploadUri = new Uri(baseUri,
+        var destinationUri = new Uri(baseUri,
             // To generate a valid URI, we must encode each part of the file path
             string.Join('/', filePath.Split('/').Select(Uri.EscapeDataString)));
 
-        if (!baseUri.IsBaseOf(uploadUri))
+        if (!baseUri.IsBaseOf(destinationUri))
         {
             throw new ArgumentException("Illegal file name.", nameof(fileName));
         }
 
         // TODO Error handling. When do we need to abort etc?
 
-        logger.LogDebug("AddFile uploadUri 🐛 {uploadUri}", uploadUri);
+        logger.LogDebug("AddFile destinationUri 🐛 {destinationUri}", destinationUri);
         logger.LogDebug("AddFile contentType 🐛 {contentType}", contentType);
 
-        await EnsureDirectoryExists(baseUri, uploadUri);
+        await EnsureDirectoryExists(baseUri, destinationUri);
 
         using var sha256 = SHA256.Create();
         using var hashStream = new CryptoStream(stream, sha256, CryptoStreamMode.Read);
 
-        var result = await webDavClient.PutFile(uploadUri, stream, contentType);
+        await DoChunkedUpload(destinationUri, hashStream);
 
         await UpdateSha256File(baseUri, filePath, sha256.Hash!);
-
-        if (result.IsSuccessful)
-        {
-            logger.LogDebug("AddFile OK 🐛 {fileUploadUrl}", uploadUri);
-            logger.LogInformation("AddFile OK {fileUploadUrl}", uploadUri);
-        }
-        else
-        {
-            logger.LogError("AddFile UPLOAD FAIL {fileUploadUrl}", uploadUri);
-            logger.LogInformation("AddFile FAILED WebDav Response {result}", result);
-        }
     }
 
     public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
@@ -241,7 +273,7 @@ public class NextCloudStorageService : IStorageService
     }
 
     private Uri GetProjectWebDavUri(string projectId) =>
-         new(webDavBaseUri, $"{Uri.EscapeDataString(rootDirectoryName)}/{Uri.EscapeDataString(projectId)}/");
+         new(webDavFilesBaseUri, $"{Uri.EscapeDataString(rootDirectoryName)}/{Uri.EscapeDataString(projectId)}/");
 
     private async Task<bool> DirectoryExists(Uri uri)
     {
