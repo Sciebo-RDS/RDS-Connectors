@@ -99,7 +99,7 @@ public class NextCloudStorageService : IStorageService
         }
 
         using var reader = new StreamReader(file.Stream, Encoding.UTF8);
-        var roCrate = JsonDocument.Parse(reader.ReadToEnd());
+        var roCrate = JsonDocument.Parse(await reader.ReadToEndAsync());
         JsonElement graph = roCrate.RootElement.GetProperty("@graph");
         foreach (JsonElement element in graph.EnumerateArray())
         {
