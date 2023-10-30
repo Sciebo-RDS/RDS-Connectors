@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
 using WebDav;
+using Nerdbank.Streams;
 
 public class NextCloudStorageService : IStorageService
 {
@@ -139,7 +140,7 @@ public class NextCloudStorageService : IStorageService
         }
 
         // Upload via NextClouds WebDav chunked upload API
-        async Task DoChunkedUpload(Uri destinationUri, Stream stream)
+        async Task Upload(Uri destinationUri, Stream stream)
         {
             var uri = new Uri(webDavUploadsBaseUri, "doris-connector-upload-" + Guid.NewGuid().ToString() + "/");
             // Add Destination header to all webdav calls to ensure we use v2 of the WebDav chunked upload API
@@ -150,29 +151,23 @@ public class NextCloudStorageService : IStorageService
                 Headers = destinationHeader
             });
 
-            int chunk = 1;
-            byte[] buffer = new byte[uploadChunkSize];
-            int bufferPosition = 0;
-            int bytesRead;
-
-            do
+            long bytesRead = 0;
+            var monitoringStream = new MonitoringStream(stream);
+            monitoringStream.DidRead += (_, e) =>
             {
-                bytesRead = await stream.ReadAsync(buffer, bufferPosition, buffer.Length - bufferPosition);
-                bufferPosition += bytesRead;
+                bytesRead += e.Count;
+            };
 
-                if (bufferPosition == buffer.Length ||
-                    bytesRead == 0 && bufferPosition > 0)
+            int chunk = 1;
+            while (bytesRead % uploadChunkSize == 0)
+            {
+                await webDavClient.PutFile(new Uri(uri, chunk.ToString()), monitoringStream.ReadSlice(uploadChunkSize), new PutFileParameters
                 {
-                    using var chunkStream = new MemoryStream(buffer, 0, bufferPosition);
-                    await webDavClient.PutFile(new Uri(uri, chunk.ToString()), chunkStream, new PutFileParameters
-                    {
-                         Headers = destinationHeader
-                    });
-                    bufferPosition = 0;
-                    chunk++;
-                }
+                    Headers = destinationHeader
+                });
+
+                chunk++;
             }
-            while (bytesRead > 0);
 
             // Destination header is already included in Move by default
             await webDavClient.Move(new Uri(uri, ".file"), destinationUri);
@@ -222,7 +217,7 @@ public class NextCloudStorageService : IStorageService
         using var sha256 = SHA256.Create();
         using var hashStream = new CryptoStream(stream, sha256, CryptoStreamMode.Read);
 
-        await DoChunkedUpload(destinationUri, hashStream);
+        await Upload(destinationUri, hashStream);
 
         await UpdateSha256File(baseUri, filePath, sha256.Hash!);
     }
