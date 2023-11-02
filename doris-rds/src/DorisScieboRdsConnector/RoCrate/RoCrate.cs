@@ -11,6 +11,7 @@ public class RoCrate
     public string EduPersonPrincipalName { get; }
     public string PrincipalDomain { get; }
     public string? Name { get; }
+    public string? DataReviewUrl { get; }
 
     public IEnumerable<RoFile> Files { get; }
 
@@ -19,12 +20,14 @@ public class RoCrate
         string eduPersonPrincipalName, 
         string principalDomain,
         string? name,
+        string? dataReviewUrl,
         IEnumerable<RoFile> files)
     {
         EduPersonPrincipalName = eduPersonPrincipalName;
         ProjectId = projectId;
         PrincipalDomain = principalDomain;
         Name = name;
+        DataReviewUrl = dataReviewUrl;
         Files = files;
     }
 
@@ -32,7 +35,7 @@ public class RoCrate
     {
         var graph = new JsonArray();
 
-        var metadataFileDesriptor = new JsonObject
+        var metadataFileDescriptor = new JsonObject
         {
             ["@type"] = "CreativeWork",
             ["@id"] = "ro-crate-metadata.json",
@@ -57,9 +60,25 @@ public class RoCrate
             }
         };
 
-        if (Name != null) metadataFileDesriptor["name"] = Name;
+        if (Name != null) metadataFileDescriptor["name"] = Name;
 
-        graph.Add(metadataFileDesriptor);
+        if (DataReviewUrl != null)
+        {
+            metadataFileDescriptor["isBasedOn"] = new JsonObject
+            {
+                ["@id"] = "#dataReviewLink"
+            };
+
+            graph.Add(new JsonObject
+            {
+                ["@type"] = "CreativeWork",
+                ["@id"] = "#dataReviewLink",
+                ["additionalType"] = "dataReviewLink",
+                ["url"] = DataReviewUrl
+            });
+        }
+
+        graph.Add(metadataFileDescriptor);
 
         graph.Add(new JsonObject
         {
