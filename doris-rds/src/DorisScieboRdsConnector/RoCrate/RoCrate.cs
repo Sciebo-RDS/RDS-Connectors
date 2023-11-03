@@ -137,6 +137,7 @@ public class RoCrate
 
             if (file.DateModified != null) fileObject["dateModified"] = file.DateModified;
             if (file.EncodingFormat != null) fileObject["encodingFormat"] = file.EncodingFormat;
+            if (file.Sha256 != null) fileObject["sha256"] = file.Sha256;
             if (file.Url != null) fileObject["url"] = file.Url.AbsoluteUri;
 
             graph.Add(fileObject);
