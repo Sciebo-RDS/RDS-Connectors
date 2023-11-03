@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using System;
-using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
@@ -29,6 +28,8 @@ public class ConnectorController : ControllerBase
     private readonly NextCloudConfiguration nextCloudConfiguration;
     private readonly IStorageService storageService;
     private readonly IDorisService dorisService;
+
+    private const string roCrateFileName = "ro-crate-metadata.json";
 
     public ConnectorController(
         ILogger<ConnectorController> logger, 
@@ -82,49 +83,13 @@ public class ConnectorController : ControllerBase
         logger.LogInformation("UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
-        //var files = await storageService.GetFiles(projectId);
-        //var manifest = RoCrateHelper.GenerateRoCrateManifest(projectId, this.configuration["Domain"], "usertmp", files);
+        await storageService.StoreRoCrateMetadata(projectId, request.Metadata.GetRawText());
 
         return Ok(new
         {
             Metadata = new JsonObject() // TODO What should we return here? How is this used by sciebo-rds?
         });
     }
-
-    [HttpPut("metadata/project/{projectId}")]
-    public async Task<NoContentResult> PublishProject(string projectId, PortUserName request)
-    {
-        logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
-
-        var files = await storageService.GetFiles(projectId);
-        string? name = await storageService.GetProjectName(projectId);
-        string? dataReviewLink = await storageService.GetDataReviewLink(projectId);
-
-        var roCrate = new RoCrate(
-            projectId: projectId, 
-            eduPersonPrincipalName: request.UserId, 
-            principalDomain: dorisConfiguration.PrincipalDomain, 
-            name: name,
-            dataReviewLink: dataReviewLink,
-            files: files);
-
-        var json = roCrate.ToGraph();
-        logger.LogDebug("RO-Crate payload: {payload}", json);
-
-        if (dorisConfiguration.DorisApiEnabled)
-        {
-            await dorisService.PostRoCrate(json);
-        }
-        else
-        {
-            logger.LogInformation("Doris API disabled, not posting RO-Crate payload.");
-        }
-
-        await storageService.StoreRoCrateMetadata(projectId, new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(json)));
-
-        return NoContent();
-    }
-
 
     [HttpPost("metadata/project/{projectId}/files")]
     // Disable form value model binding to ensure that files are not buffered
@@ -164,13 +129,17 @@ public class ConnectorController : ControllerBase
             if (ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisposition) && 
                 contentDisposition.DispositionType.Equals("form-data") &&
                 !string.IsNullOrEmpty(contentDisposition.FileName.Value))
-            {
-                foundFiles = true;
+            {             
                 string fileName = contentDisposition.FileName.Value;
 
-                logger.LogInformation("📄AddFile file: {fileName}", fileName);
+                // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
+                if (fileName != roCrateFileName)
+                {
+                    foundFiles = true;
+                    logger.LogInformation("📄AddFile file: {fileName}", fileName);
 
-                await storageService.AddFile(projectId, fileName, section.ContentType ?? "application/octet-stream", section.Body);
+                    await storageService.AddFile(projectId, fileName, section.ContentType ?? "application/octet-stream", section.Body);
+                }
             }
 
             section = await reader.ReadNextSectionAsync();
@@ -189,6 +158,69 @@ public class ConnectorController : ControllerBase
         {
             Success = true
         });
+    }
+
+    [HttpPut("metadata/project/{projectId}")]
+    public async Task<NoContentResult> PublishProject(string projectId, PortUserName request)
+    {
+        static string? GetProjectName(string roCrateMetadata)
+        {
+            var roCrate = JsonDocument.Parse(roCrateMetadata);
+            if (roCrate.RootElement.TryGetProperty("@graph", out var graph) &&
+                graph.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement element in graph.EnumerateArray())
+                {
+                    if (element.TryGetProperty("@id", out var id) &&
+                        element.TryGetProperty("@type", out var type) &&
+                        element.TryGetProperty("name", out var name))
+                    {
+                        if (id.ToString() == "./" && type.ToString() == "Dataset")
+                        {
+                            return name.ToString();
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
+
+        var files = await storageService.GetFiles(projectId);
+        string? dataReviewLink = await storageService.GetDataReviewLink(projectId);
+        string? roCrateMetadata = await storageService.GetRoCrateMetadata(projectId);
+        string? projectName = null;
+
+        if (roCrateMetadata != null)
+        {
+            projectName = GetProjectName(roCrateMetadata);
+        }
+
+        var roCrate = new RoCrate(
+            projectId: projectId, 
+            eduPersonPrincipalName: request.GetUserName(), 
+            principalDomain: dorisConfiguration.PrincipalDomain, 
+            name: projectName,
+            dataReviewLink: dataReviewLink,
+            files: files);
+
+        var json = roCrate.ToGraph();
+        logger.LogDebug("RO-Crate payload: {payload}", json);
+
+        if (dorisConfiguration.DorisApiEnabled)
+        {
+            await dorisService.PostRoCrate(json);
+        }
+        else
+        {
+            logger.LogInformation("Doris API disabled, not posting RO-Crate payload.");
+        }
+
+        await storageService.StoreRoCrateMetadata(projectId, json.ToJsonString());
+
+        return NoContent();
     }
 
     [HttpGet("metadata/project/{projectId}/files")]
