@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using System;
+using System.IO;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -95,13 +97,15 @@ public class ConnectorController : ControllerBase
         logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
 
         var files = await storageService.GetFiles(projectId);
-        var name = await storageService.GetProjectName(projectId);
+        string? name = await storageService.GetProjectName(projectId);
+        string? dataReviewLink = await storageService.GetDataReviewLink(projectId);
+
         var roCrate = new RoCrate(
             projectId: projectId, 
             eduPersonPrincipalName: request.UserId, 
             principalDomain: dorisConfiguration.PrincipalDomain, 
             name: name,
-            dataReviewUrl: null,
+            dataReviewLink: dataReviewLink,
             files: files);
 
         var json = roCrate.ToGraph();
@@ -109,12 +113,14 @@ public class ConnectorController : ControllerBase
 
         if (dorisConfiguration.DorisApiEnabled)
         {
-            await dorisService.PostRoCrate(roCrate.ToGraph());
+            await dorisService.PostRoCrate(json);
         }
         else
         {
             logger.LogInformation("Doris API disabled, not posting RO-Crate payload.");
         }
+
+        await storageService.StoreRoCrateMetadata(projectId, new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(json)));
 
         return NoContent();
     }

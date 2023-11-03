@@ -24,6 +24,7 @@ public class NextCloudStorageService : IStorageService
     private readonly ILogger logger;
     private readonly IWebDavClient webDavClient;
     private readonly OcsApiClient ocsClient;
+    private readonly NextCloudConfiguration configuration;
 
     private readonly Uri webDavFilesBaseUri;
     private readonly Uri webDavUploadsBaseUri;
@@ -42,11 +43,12 @@ public class NextCloudStorageService : IStorageService
     {
         this.logger = logger;
         this.ocsClient = ocsClient;
+        this.configuration = configuration.Value;
 
-        httpClient.SetupForNextCloud(configuration.Value);
+        httpClient.SetupForNextCloud(this.configuration);
 
-        webDavFilesBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/files/{Uri.EscapeDataString(configuration.Value.User)}/");
-        webDavUploadsBaseUri = new Uri(configuration.Value.BaseUrl, $"remote.php/dav/uploads/{Uri.EscapeDataString(configuration.Value.User)}/");
+        webDavFilesBaseUri = new Uri(this.configuration.BaseUrl, $"remote.php/dav/files/{Uri.EscapeDataString(this.configuration.User)}/");
+        webDavUploadsBaseUri = new Uri(this.configuration.BaseUrl, $"remote.php/dav/uploads/{Uri.EscapeDataString(this.configuration.User)}/");
         webDavClient = new WebDavClient(httpClient);
     }
 
@@ -83,12 +85,6 @@ public class NextCloudStorageService : IStorageService
         return DirectoryExists(GetProjectWebDavUri(projectId));
     }
 
-    public async Task StoreRoCrateMetadata(string projectId, Stream stream)
-    {
-        var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
-        await webDavClient.PutFile(roCrateUploadUri, stream, "application/ld+json");
-    }
-
     public async Task<string?> GetProjectName(string projectId)
     {
         var roCrateUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
@@ -101,19 +97,35 @@ public class NextCloudStorageService : IStorageService
 
         using var reader = new StreamReader(file.Stream, Encoding.UTF8);
         var roCrate = JsonDocument.Parse(await reader.ReadToEndAsync());
-        JsonElement graph = roCrate.RootElement.GetProperty("@graph");
-        foreach (JsonElement element in graph.EnumerateArray())
+        if (roCrate.RootElement.TryGetProperty("@graph", out var graph))
         {
-            if (element.TryGetProperty("@id", out JsonElement id))
+            foreach (JsonElement element in graph.EnumerateArray())
             {
-                if (id.GetString() == roCrateFileName)
+                if (element.TryGetProperty("@id", out JsonElement id))
                 {
-                    return element.GetProperty("name").ToString();
+                    if (id.GetString() == roCrateFileName)
+                    {
+                        return element.GetProperty("name").GetString();
+                    }
                 }
             }
         }
 
         return null;
+    }
+
+    public Task<string?> GetDataReviewLink(string projectId)
+    {
+        string url = new Uri(configuration.BaseUrl,
+            $"apps/files?dir=" + Uri.EscapeDataString(rootDirectoryName + "/" + projectId)).AbsoluteUri;
+
+        return Task.FromResult<string?>(url);
+    }
+
+    public async Task StoreRoCrateMetadata(string projectId, Stream stream)
+    {
+        var roCrateUploadUri = new Uri(GetProjectWebDavUri(projectId), roCrateFileName);
+        await webDavClient.PutFile(roCrateUploadUri, stream, "application/ld+json");
     }
 
     public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)

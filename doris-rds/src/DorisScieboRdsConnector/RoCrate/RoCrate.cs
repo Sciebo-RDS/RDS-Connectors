@@ -11,7 +11,7 @@ public class RoCrate
     public string EduPersonPrincipalName { get; }
     public string PrincipalDomain { get; }
     public string? Name { get; }
-    public string? DataReviewUrl { get; }
+    public string? DataReviewLink { get; }
 
     public IEnumerable<RoFile> Files { get; }
 
@@ -20,14 +20,14 @@ public class RoCrate
         string eduPersonPrincipalName, 
         string principalDomain,
         string? name,
-        string? dataReviewUrl,
+        string? dataReviewLink,
         IEnumerable<RoFile> files)
     {
         EduPersonPrincipalName = eduPersonPrincipalName;
         ProjectId = projectId;
         PrincipalDomain = principalDomain;
         Name = name;
-        DataReviewUrl = dataReviewUrl;
+        DataReviewLink = dataReviewLink;
         Files = files;
     }
 
@@ -62,7 +62,7 @@ public class RoCrate
 
         if (Name != null) metadataFileDescriptor["name"] = Name;
 
-        if (DataReviewUrl != null)
+        if (DataReviewLink != null)
         {
             metadataFileDescriptor["isBasedOn"] = new JsonObject
             {
@@ -74,7 +74,7 @@ public class RoCrate
                 ["@type"] = "CreativeWork",
                 ["@id"] = "#dataReviewLink",
                 ["additionalType"] = "dataReviewLink",
-                ["url"] = DataReviewUrl
+                ["url"] = DataReviewLink
             });
         }
 
