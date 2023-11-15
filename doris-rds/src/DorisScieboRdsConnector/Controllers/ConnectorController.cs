@@ -87,7 +87,7 @@ public class ConnectorController : ControllerBase
 
         return Ok(new
         {
-            Metadata = new JsonObject() // TODO What should we return here? How is this used by sciebo-rds?
+            Metadata = request.Metadata
         });
     }
 
@@ -122,7 +122,6 @@ public class ConnectorController : ControllerBase
         var boundary = HeaderUtilities.RemoveQuotes(mediaTypeHeader.Boundary.Value).Value!;
         var reader = new MultipartReader(boundary, request.Body);
         var section = await reader.ReadNextSectionAsync();
-        bool foundFiles = false;
 
         while (section != null)
         {
@@ -135,7 +134,6 @@ public class ConnectorController : ControllerBase
                 // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
                 if (fileName != roCrateFileName)
                 {
-                    foundFiles = true;
                     logger.LogInformation("📄AddFile file: {fileName}", fileName);
 
                     await storageService.AddFile(projectId, fileName, section.ContentType ?? "application/octet-stream", section.Body);
@@ -143,15 +141,6 @@ public class ConnectorController : ControllerBase
             }
 
             section = await reader.ReadNextSectionAsync();
-        }
-
-        if (!foundFiles)
-        {
-            return BadRequest(new
-            {
-                Success = false,
-                Message = "No files data in the request."
-            });
         }
 
         return Ok(new
