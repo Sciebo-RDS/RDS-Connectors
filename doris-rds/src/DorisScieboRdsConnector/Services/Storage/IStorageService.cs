@@ -19,7 +19,7 @@ public interface IStorageService
 
     Task<string?> GetRoCrateMetadata(string projectId);
 
-    Task AddFile(string projectId, string fileName, string contentType, Stream stream);
+    Task AddFile(string projectId, string fileName, Stream stream);
 
     Task<IEnumerable<RoFile>> GetFiles(string projectId);
 }

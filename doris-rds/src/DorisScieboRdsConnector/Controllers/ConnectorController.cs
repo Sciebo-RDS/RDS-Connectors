@@ -136,7 +136,7 @@ public class ConnectorController : ControllerBase
                 {
                     logger.LogInformation("📄AddFile file: {fileName}", fileName);
 
-                    await storageService.AddFile(projectId, fileName, section.ContentType ?? "application/octet-stream", section.Body);
+                    await storageService.AddFile(projectId, fileName, section.Body);
                 }
             }
 

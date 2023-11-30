@@ -113,7 +113,7 @@ public class NextCloudStorageService : IStorageService
         return await reader.ReadToEndAsync();
     }
 
-    public async Task AddFile(string projectId, string fileName, string contentType, Stream stream)
+    public async Task AddFile(string projectId, string fileName, Stream stream)
     {
         async Task EnsureDirectoryExists(Uri baseUri, Uri destinationUri)
         {
@@ -201,7 +201,6 @@ public class NextCloudStorageService : IStorageService
         // TODO Error handling. When do we need to abort etc?
 
         logger.LogDebug("AddFile destinationUri 🐛 {destinationUri}", destinationUri);
-        logger.LogDebug("AddFile contentType 🐛 {contentType}", contentType);
 
         await EnsureDirectoryExists(baseUri, destinationUri);
 
