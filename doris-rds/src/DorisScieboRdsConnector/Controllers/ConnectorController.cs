@@ -50,7 +50,7 @@ public class ConnectorController : ControllerBase
     [HttpPost("metadata/project")]
     public async Task<IActionResult> CreateProject(PortUserNameWithMetadata request)
     {
-        logger.LogInformation("CreateProject (POST /metadata/project), userId: {userId}, metadata: {metadata}", request.UserId, request.Metadata);
+        logger.LogInformation("Entering CreateProject (POST /metadata/project), userId: {userId}, metadata: {metadata}", request.UserId, request.Metadata);
 
         static string GenerateProjectId()
         {
@@ -80,7 +80,7 @@ public class ConnectorController : ControllerBase
     [HttpPatch("metadata/project/{projectId}")]
     public async Task<IActionResult> UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
-        logger.LogInformation("UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
+        logger.LogInformation("Entering UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
         await storageService.StoreRoCrateMetadata(projectId, request.Metadata.GetRawText());
@@ -98,8 +98,12 @@ public class ConnectorController : ControllerBase
     [DisableRequestSizeLimit] 
     public async Task<IActionResult> AddFile([FromRoute] string projectId)
     {
+        logger.LogInformation("Entering 📄AddFile (PUT metadata/project/{projectId})", projectId);
+
         if (!await storageService.ProjectExists(projectId))
         {
+            logger.LogInformation("📄AddFile: project {projectId} not found in storage, aborting", projectId);
+
             return NotFound(new
             {
                 Success = false,
@@ -116,6 +120,7 @@ public class ConnectorController : ControllerBase
             !MediaTypeHeaderValue.TryParse(request.ContentType, out var mediaTypeHeader) ||
             string.IsNullOrEmpty(mediaTypeHeader.Boundary.Value))
         {
+            logger.LogInformation("📄AddFile: could not parse as multipart request, aborting.");
             return new UnsupportedMediaTypeResult();
         }
 
@@ -125,23 +130,35 @@ public class ConnectorController : ControllerBase
 
         while (section != null)
         {
-            if (ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisposition) && 
+            if (ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var contentDisposition) &&
                 contentDisposition.DispositionType.Equals("form-data") &&
                 !string.IsNullOrEmpty(contentDisposition.FileName.Value))
-            {             
+            {
                 string fileName = contentDisposition.FileName.Value;
 
                 // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
                 if (fileName != roCrateFileName)
                 {
-                    logger.LogInformation("📄AddFile file: {fileName}", fileName);
+                    logger.LogInformation("📄AddFile: Store {fileName}...", fileName);
 
                     await storageService.AddFile(projectId, fileName, section.Body);
+
+                    logger.LogInformation("📄AddFile: {fileName} stored.", fileName);
                 }
+                else
+                {
+                    logger.LogInformation("📄AddFile: Received ro-crate-metadata.json, skipping");
+                }
+            }
+            else
+            {
+                logger.LogInformation("📄AddFile: Non filename section found, content: {content}", await section.ReadAsStringAsync());
             }
 
             section = await reader.ReadNextSectionAsync();
         }
+
+        logger.LogInformation("📄AddFile: Done, returning success");
 
         return Ok(new
         {
@@ -175,7 +192,7 @@ public class ConnectorController : ControllerBase
             return null;
         }
 
-        logger.LogInformation("PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
+        logger.LogInformation("Entering PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
 
         var files = await storageService.GetFiles(projectId);
         string? dataReviewLink = await storageService.GetDataReviewLink(projectId);
