@@ -2,4 +2,4 @@
 
 using System.Text.Json;
 
-public record PortUserNameWithMetadata(string UserId, JsonElement Metadata) : PortUserName(UserId);
+public record PortUserNameWithMetadata(string UserId, JsonDocument Metadata) : PortUserName(UserId);

@@ -48,9 +48,9 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpPost("metadata/project")]
-    public async Task<IActionResult> CreateProject(PortUserNameWithMetadata request)
+    public async Task<IActionResult> CreateProject(PortUserName request)
     {
-        logger.LogInformation("Entering CreateProject (POST /metadata/project), userId: {userId}, metadata: {metadata}", request.UserId, request.Metadata);
+        logger.LogInformation("Entering CreateProject (POST /metadata/project), userId: {userId}", request.UserId);
 
         static string GenerateProjectId()
         {
@@ -83,12 +83,9 @@ public class ConnectorController : ControllerBase
         logger.LogInformation("Entering UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
-        await storageService.StoreRoCrateMetadata(projectId, request.Metadata.GetRawText());
+        await storageService.StoreRoCrateMetadata(projectId, request.Metadata.RootElement.GetRawText());
 
-        return Ok(new
-        {
-            Metadata = request.Metadata
-        });
+        return Ok(request.Metadata);
     }
 
     [HttpPost("metadata/project/{projectId}/files")]
