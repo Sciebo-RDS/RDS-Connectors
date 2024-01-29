@@ -149,7 +149,7 @@ public class ConnectorController : ControllerBase
             }
             else
             {
-                logger.LogInformation("📄AddFile: Non filename section found, content: {content}", await section.ReadAsStringAsync());
+                logger.LogDebug("📄AddFile: Non filename section found, content: {content}", await section.ReadAsStringAsync());
             }
 
             section = await reader.ReadNextSectionAsync();
