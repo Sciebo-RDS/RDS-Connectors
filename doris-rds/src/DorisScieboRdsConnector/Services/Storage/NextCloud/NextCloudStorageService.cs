@@ -30,7 +30,7 @@ public class NextCloudStorageService : IStorageService
 
     private const string rootDirectoryName = "doris-datasets";
     private const string linkShareLabel = "dataset-share";
-    private const int uploadChunkSize = 10 * 1024 * 1024;
+    private const int uploadChunkSize = 512 * 1024;
 
     private const string roCrateFileName = "ro-crate-metadata.json";
 
