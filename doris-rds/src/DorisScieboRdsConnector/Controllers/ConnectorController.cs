@@ -133,8 +133,17 @@ public class ConnectorController : ControllerBase
             {
                 string fileName = contentDisposition.FileName.Value;
 
-                // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
-                if (fileName != roCrateFileName)
+                if (fileName.EndsWith('/'))
+                {
+                    // RDS sometimes sends directories, ignore
+                    logger.LogDebug("📄AddFile: Received directory {fileName}, skipping", fileName);
+                }
+                else if (fileName == roCrateFileName)
+                {
+                    // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
+                    logger.LogDebug("📄AddFile: Received ro-crate-metadata.json, skipping");
+                }
+                else
                 {
                     logger.LogInformation("📄AddFile: Store {fileName}...", fileName);
 
@@ -142,14 +151,12 @@ public class ConnectorController : ControllerBase
 
                     logger.LogInformation("📄AddFile: {fileName} stored.", fileName);
                 }
-                else
-                {
-                    logger.LogInformation("📄AddFile: Received ro-crate-metadata.json, skipping");
-                }
             }
             else
             {
-                logger.LogDebug("📄AddFile: Non filename section found, content: {content}", await section.ReadAsStringAsync());
+                logger.LogDebug("📄AddFile: Non filename section found, header: {header}, content: {content}", 
+                    section.ContentDisposition,
+                    await section.ReadAsStringAsync());
             }
 
             section = await reader.ReadNextSectionAsync();

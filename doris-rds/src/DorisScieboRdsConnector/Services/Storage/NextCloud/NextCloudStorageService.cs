@@ -21,7 +21,7 @@ using WebDav;
 public class NextCloudStorageService : IStorageService
 {
     private readonly ILogger logger;
-    private readonly IWebDavClient webDavClient;
+    private readonly WebDavClient webDavClient;
     private readonly OcsApiClient ocsClient;
     private readonly NextCloudConfiguration configuration;
 
