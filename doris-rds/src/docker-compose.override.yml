@@ -5,7 +5,6 @@ services:
     hostname: doris-connector
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
       - ScieboRds__RegisterConnectorOnStartup=false
       - ScieboRds__TokenStorageUrl=http://localhost/dummy
       - ScieboRds__ConnectorServiceName=port-doris
@@ -18,7 +17,7 @@ services:
       - Doris__ApiKey=key
       - Logging__LogLevel__Default=Debug
     ports:
-      - 8080:80
+      - 8080:8080
   nextcloud:
     image: nextcloud
     hostname: nextcloud

@@ -20,32 +20,22 @@ using System.Threading.Tasks;
 
 [ApiController]
 [Route("/")]
-public class ConnectorController : ControllerBase
+public class ConnectorController(
+    ILogger<ConnectorController> logger,
+    IConfiguration configuration,
+    IOptions<DorisConfiguration> dorisConfiguration,
+    IOptions<NextCloudConfiguration> nextCloudConfiguration,
+    IStorageService storageService,
+    IDorisService dorisService) : ControllerBase
 {
-    private readonly ILogger logger;
-    private readonly IConfiguration configuration;
-    private readonly DorisConfiguration dorisConfiguration;
-    private readonly NextCloudConfiguration nextCloudConfiguration;
-    private readonly IStorageService storageService;
-    private readonly IDorisService dorisService;
+    private readonly ILogger logger = logger;
+    private readonly IConfiguration configuration = configuration;
+    private readonly DorisConfiguration dorisConfiguration = dorisConfiguration.Value;
+    private readonly NextCloudConfiguration nextCloudConfiguration = nextCloudConfiguration.Value;
+    private readonly IStorageService storageService = storageService;
+    private readonly IDorisService dorisService = dorisService;
 
     private const string roCrateFileName = "ro-crate-metadata.json";
-
-    public ConnectorController(
-        ILogger<ConnectorController> logger, 
-        IConfiguration configuration,
-        IOptions<DorisConfiguration> dorisConfiguration,
-        IOptions<NextCloudConfiguration> nextCloudConfiguration,
-        IStorageService storageService,
-        IDorisService dorisService)
-    {
-        this.logger = logger;
-        this.configuration = configuration;
-        this.dorisConfiguration = dorisConfiguration.Value;
-        this.nextCloudConfiguration = nextCloudConfiguration.Value;
-        this.storageService = storageService;
-        this.dorisService = dorisService;
-    }
 
     [HttpPost("metadata/project")]
     public async Task<IActionResult> CreateProject(PortUserName request)
@@ -92,7 +82,7 @@ public class ConnectorController : ControllerBase
     // Disable form value model binding to ensure that files are not buffered
     [DisableFormValueModelBinding]
     // Disable request size limit to allow streaming large files
-    [DisableRequestSizeLimit] 
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> AddFile([FromRoute] string projectId)
     {
         logger.LogInformation("Entering 📄AddFile (PUT metadata/project/{projectId})", projectId);
@@ -154,7 +144,7 @@ public class ConnectorController : ControllerBase
             }
             else
             {
-                logger.LogDebug("📄AddFile: Non filename section found, header: {header}, content: {content}", 
+                logger.LogDebug("📄AddFile: Non filename section found, header: {header}, content: {content}",
                     section.ContentDisposition,
                     await section.ReadAsStringAsync());
             }
@@ -171,7 +161,7 @@ public class ConnectorController : ControllerBase
     }
 
     [HttpPut("metadata/project/{projectId}")]
-    public async Task<NoContentResult> PublishProject(string projectId, PortUserName request)
+    public async Task<IActionResult> PublishProject(string projectId, PortUserName request)
     {
         static string? GetProjectName(string roCrateMetadata)
         {
@@ -209,9 +199,9 @@ public class ConnectorController : ControllerBase
         }
 
         var roCrate = new RoCrate(
-            projectId: projectId, 
-            eduPersonPrincipalName: request.GetUserName(), 
-            principalDomain: dorisConfiguration.PrincipalDomain, 
+            projectId: projectId,
+            eduPersonPrincipalName: request.GetUserName(),
+            principalDomain: dorisConfiguration.PrincipalDomain,
             name: projectName,
             dataReviewLink: dataReviewLink,
             files: files);
@@ -230,7 +220,10 @@ public class ConnectorController : ControllerBase
 
         await storageService.StoreRoCrateMetadata(projectId, json.ToJsonString());
 
-        return NoContent();
+        return Ok(new
+        {
+            DOI = "Provided later via doris.snd.se"
+        });
     }
 
     [HttpGet("metadata/project/{projectId}/files")]

@@ -247,7 +247,7 @@ public class NextCloudStorageService : IStorageService
                     ContentSize: res.ContentLength.GetValueOrDefault(),
                     DateModified: res.LastModifiedDate?.ToUniversalTime(),
                     EncodingFormat: res.ContentType,
-                    Sha256: sha256Lookup.ContainsKey(id) ? sha256Lookup[id] : null,
+                    Sha256: sha256Lookup.TryGetValue(id, out string? value) ? value : null,
                     Url: new Uri(baseUri, $"/s/{shareToken}/download?path={Uri.EscapeDataString(path)}&files={Uri.EscapeDataString(fileName)}")
                 ));
             }
