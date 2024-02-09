@@ -41,7 +41,7 @@ public class ConnectorController(
     [HttpPost("metadata/project")]
     public async Task<IActionResult> CreateProject(PortUserName request)
     {
-        logger.LogInformation("Entering CreateProject (POST /metadata/project), userId: {userId}", request.UserId);
+        logger.LogDebug("Entering CreateProject (POST /metadata/project), userId: {userId}", request.UserId);
 
         static string GenerateProjectId()
         {
@@ -57,9 +57,11 @@ public class ConnectorController(
             projectId = GenerateProjectId();
         }
 
-        logger.LogInformation("CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {nextCloudUser}",
+        logger.LogDebug("CreateProject call storageService.SetupProject for {projectId} NextCloud:User: {nextCloudUser}",
             projectId, nextCloudConfiguration.User);
         await storageService.SetupProject(projectId);
+
+        logger.LogInformation("Created project {projectId}", projectId);
 
         return Ok(new
         {
@@ -71,10 +73,12 @@ public class ConnectorController(
     [HttpPatch("metadata/project/{projectId}")]
     public async Task<IActionResult> UpdateMetadata(string projectId, PortUserNameWithMetadata request)
     {
-        logger.LogInformation("Entering UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
+        logger.LogDebug("Entering UpdateMetadata (PATCH /metadata/project/{projectId}), userId: {userId}, metadata: {metadata}",
             projectId, request.UserId, request.Metadata);
 
         await storageService.StoreRoCrateMetadata(projectId, request.Metadata.RootElement.GetRawText());
+
+        logger.LogInformation("Stored metadata for {projectId}", projectId);
 
         return Ok(request.Metadata);
     }
@@ -86,11 +90,11 @@ public class ConnectorController(
     [DisableRequestSizeLimit]
     public async Task<IActionResult> AddFile([FromRoute] string projectId)
     {
-        logger.LogInformation("Entering 📄AddFile (PUT metadata/project/{projectId})", projectId);
+        logger.LogDebug("Entering 📄AddFile (PUT metadata/project/{projectId})", projectId);
 
         if (!await storageService.ProjectExists(projectId))
         {
-            logger.LogInformation("📄AddFile: project {projectId} not found in storage, aborting", projectId);
+            logger.LogInformation("📄AddFile {projectId}: project not found in storage, aborting", projectId);
 
             return NotFound(new
             {
@@ -108,7 +112,7 @@ public class ConnectorController(
             !MediaTypeHeaderValue.TryParse(request.ContentType, out var mediaTypeHeader) ||
             string.IsNullOrEmpty(mediaTypeHeader.Boundary.Value))
         {
-            logger.LogInformation("📄AddFile: could not parse as multipart request, aborting.");
+            logger.LogInformation("📄AddFile {projectId}: could not parse as multipart request, aborting.", projectId);
             return new UnsupportedMediaTypeResult();
         }
 
@@ -127,25 +131,28 @@ public class ConnectorController(
                 if (fileName.EndsWith('/'))
                 {
                     // RDS sometimes sends directories, ignore
-                    logger.LogDebug("📄AddFile: Received directory {fileName}, skipping", fileName);
+                    logger.LogDebug("📄AddFile {projectId}: Received directory {fileName}, skipping", projectId, fileName);
                 }
                 else if (fileName == roCrateFileName)
                 {
                     // We ignore ro-crate-metadata.json here, since we already stored it in UpdateMetadata
-                    logger.LogDebug("📄AddFile: Received ro-crate-metadata.json, skipping");
+                    logger.LogDebug("📄AddFile {projectId}: Received ro-crate-metadata.json, skipping", projectId);
                 }
                 else
                 {
-                    logger.LogInformation("📄AddFile: Store {fileName}...", fileName);
+                    logger.LogDebug("📄AddFile {projectId}: Store {fileName}...", projectId, fileName);
 
                     await storageService.AddFile(projectId, fileName, section.Body);
 
-                    logger.LogInformation("📄AddFile: {fileName} stored.", fileName);
+                    logger.LogDebug("📄AddFile {projectId}: {fileName} stored.", projectId, fileName);
+
+                    logger.LogInformation("File {fileName} stored for project {projectId}", projectId, fileName); 
                 }
             }
             else
             {
-                logger.LogDebug("📄AddFile: Non filename section found, header: {header}, content: {content}",
+                logger.LogDebug("📄AddFile {projectId}: Non filename section found, header: {header}, content: {content}",
+                    projectId,
                     section.ContentDisposition,
                     await section.ReadAsStringAsync());
             }
@@ -153,7 +160,7 @@ public class ConnectorController(
             section = await reader.ReadNextSectionAsync();
         }
 
-        logger.LogInformation("📄AddFile: Done, returning success");
+        logger.LogDebug("📄AddFile {projectId}: Done, returning success", projectId);
 
         return Ok(new
         {
@@ -187,7 +194,7 @@ public class ConnectorController(
             return null;
         }
 
-        logger.LogInformation("Entering PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
+        logger.LogDebug("Entering PublishProject (PUT metadata/project/{projectId}), userId: {userId}", projectId, request.UserId);
 
         var files = await storageService.GetFiles(projectId);
         string? dataReviewLink = await storageService.GetDataReviewLink(projectId);
@@ -208,7 +215,7 @@ public class ConnectorController(
             files: files);
 
         var json = roCrate.ToGraph();
-        logger.LogDebug("RO-Crate payload: {payload}", json);
+        logger.LogDebug("RO-Crate payload for {projectId}: {payload}", projectId, json);
 
         if (dorisConfiguration.DorisApiEnabled)
         {
@@ -216,10 +223,12 @@ public class ConnectorController(
         }
         else
         {
-            logger.LogInformation("Doris API disabled, not posting RO-Crate payload.");
+            logger.LogInformation("Doris API disabled, not posting RO-Crate payload for project {projectId}.", projectId);
         }
 
         await storageService.StoreRoCrateMetadata(projectId, json.ToJsonString());
+
+        logger.LogInformation("Project {projectId} published", projectId);
 
         // Use JsonResult and custom serializer options to ensure that property names
         // are serialized as is.
@@ -234,7 +243,7 @@ public class ConnectorController(
     [HttpGet("metadata/project/{projectId}/files")]
     public async Task<IActionResult> GetFiles([FromRoute] string projectId)
     {
-        logger.LogInformation("GetFiles (GET /metadata/project/{projectId}), projectId: {projectId}", projectId, projectId);
+        logger.LogDebug("GetFiles (GET /metadata/project/{projectId}), projectId: {projectId}", projectId, projectId);
 
         var files = await storageService.GetFiles(projectId);
 

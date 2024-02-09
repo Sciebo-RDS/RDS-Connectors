@@ -58,21 +58,21 @@ public class NextCloudStorageService : IStorageService
 
         if (await DirectoryExists(baseUri))
         {
-            logger.LogInformation("📁SetupProject projectId exists: {projectId}", projectId);
+            logger.LogDebug("📁SetupProject projectId exists: {projectId}", projectId);
         }
         else
         {
-            logger.LogInformation("📁SetupProject create directory: {baseUri}", baseUri);
+            logger.LogDebug("📁SetupProject create directory: {baseUri}", baseUri);
             await webDavClient.Mkcol(baseUri);
         }
 
         if (await DirectoryExists(dataUri))
         {
-            logger.LogInformation("📁SetupProject data folder exists: {projectId}", projectId);
+            logger.LogDebug("📁SetupProject data folder exists: {projectId}", projectId);
         }
         else
         {
-            logger.LogInformation("📁SetupProject create directory: {dataUri}", dataUri);
+            logger.LogDebug("📁SetupProject create directory: {dataUri}", dataUri);
             await webDavClient.Mkcol(dataUri);
         }
 
@@ -219,7 +219,7 @@ public class NextCloudStorageService : IStorageService
         var linkShareUri = new Uri(baseUri, "data/");
 
         string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
-        logger.LogInformation("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
+        logger.LogDebug("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
 
         var sha256Lookup = await GetSha256ManifestValues(baseUri);
 
