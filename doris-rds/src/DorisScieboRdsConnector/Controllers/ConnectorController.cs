@@ -220,10 +220,12 @@ public class ConnectorController(
 
         await storageService.StoreRoCrateMetadata(projectId, json.ToJsonString());
 
-        return Ok(new
+        return Content("{\"DOI\": \"Provided later via doris.snd.se\"}", "application/json");
+
+        /*return Ok(new
         {
             DOI = "Provided later via doris.snd.se"
-        });
+        });*/
     }
 
     [HttpGet("metadata/project/{projectId}/files")]
