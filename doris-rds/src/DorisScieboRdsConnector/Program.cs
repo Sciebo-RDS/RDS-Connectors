@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpLogging(o =>
 {
     o.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
-    o.MediaTypeOptions.AddText("multipart/form-data");
+    //o.MediaTypeOptions.AddText("multipart/form-data");
 });
 
 builder.Services.AddControllers();
@@ -49,7 +49,7 @@ var app = builder.Build();
 
 app.UseHttpLogging();
 
-app.Use(async (context, next) =>
+/*app.Use(async (context, next) =>
 {
     // Must read request body here to ensure that it is logged by the HTTP logger.
     var request = context.Request;
@@ -65,7 +65,7 @@ app.Use(async (context, next) =>
     request.Body.Position = 0;
 
     await next.Invoke();
-});
+});*/
 
 app.MapControllers();
 
