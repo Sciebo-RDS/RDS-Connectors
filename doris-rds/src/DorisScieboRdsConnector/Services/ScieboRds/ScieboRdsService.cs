@@ -42,8 +42,8 @@ public class ScieboRdsService : IScieboRdsService
                     sv = "Connector för filmetadata till Doris"
                 },
                 icon = icon,
-                infoUrl = "https://doris.snd.gu.se",
-                helpUrl = "https://doris.snd.gu.se",
+                infoUrl = "https://doris.snd.se",
+                helpUrl = "https://doris.snd.se",
                 displayName = "Doris"
             }
         });

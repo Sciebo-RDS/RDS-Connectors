@@ -35,6 +35,7 @@ public class ConnectorController(
     private readonly IStorageService storageService = storageService;
     private readonly IDorisService dorisService = dorisService;
 
+    private static readonly JsonSerializerOptions jsonSerializerOptions = new() { PropertyNamingPolicy = null };
     private const string roCrateFileName = "ro-crate-metadata.json";
 
     [HttpPost("metadata/project")]
@@ -63,7 +64,7 @@ public class ConnectorController(
         return Ok(new
         {
             ProjectId = projectId,
-            Metadata = new JsonObject() // TODO How is this used by sciebo-rds?
+            Metadata = new JsonObject()
         });
     }
 
@@ -220,12 +221,14 @@ public class ConnectorController(
 
         await storageService.StoreRoCrateMetadata(projectId, json.ToJsonString());
 
-        return Content("{\"DOI\": \"Provided later via doris.snd.se\"}", "application/json");
-
-        /*return Ok(new
+        // Use JsonResult and custom serializer options to ensure that property names
+        // are serialized as is.
+        // Sciebo expects "DOI" in upper case, will fail otherwise.
+        return new JsonResult(new
         {
             DOI = "Provided later via doris.snd.se"
-        });*/
+        },
+        jsonSerializerOptions);
     }
 
     [HttpGet("metadata/project/{projectId}/files")]
@@ -246,13 +249,4 @@ public class ConnectorController(
     {
         return new JsonResult(configuration.AsEnumerable());
     }
-
-    // Endpoints that are not implemented, are they needed?
-    // GET metadata/project/{projectId} - Get all metadata
-    // DELETE metadata/project/{projectId} - Remove a project from this service
-    // DELETE metadata/project/{projectId}/files - ?
-    // GET metadata/project/{projectId}/files/{fileId} - Get specified file
-    // PATCH metadata/project/{projectId}/files/{fileId} - ?
-    // DELETE metadata/project/{projectId}/files/{fileId} - ?
-    // GET metadata/project - Returns all projects available in the service for user
 }
