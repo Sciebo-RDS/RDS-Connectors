@@ -33,6 +33,72 @@ public class ScieboRdsService : IScieboRdsService
 }
 """;
 
+    private const string metadataProfileOsf = """
+{
+    "metadata": {
+        "name": "OSF API",
+        "description" : "A profile to be mapped onto the Open Science Framework API.",
+        "version": 0.1,
+        "warnMissingProperty": true
+    },
+    "layouts": {
+        "Dataset": [
+            { "name": "OSF settings", "description": "Settings that will be used to map to the OSF API", "inputs": ["title", "osfcategory", "description"] }
+        ]
+    },
+    "classes": {
+        "Dataset": {
+            "definition": "override",
+            "subClassOf": [],
+            "inputs": [
+                {
+                    "id": "https://something",
+                    "name": "title",
+                    "label": "OSF Title",
+                    "help": "The that OSF will use for your publication ",
+                    "required": true,
+                    "multiple": false,
+                    "type": ["Text"]
+                },
+                {
+                    "id": "https://something",
+                    "name": "osfcategory",
+                    "label": "Category",
+                    "help": "The Category OSF will use for your publication",
+                    "required": true,
+                    "multiple": false,
+                    "type": ["Select"],
+                    "values": [
+                        "analysis",
+                        "communication",
+                        "data",
+                        "hypothesis",
+                        "instrumentation",
+                        "methods and measures",
+                        "procedure",
+                        "project",
+                        "software",
+                        "other"
+                    ]
+                },
+                {
+                    "id": "https://something",
+                    "name": "description",
+                    "label": "Description",
+                    "help": "The description that will be given to your OSF publication",
+                    "required": true,
+                    "multiple": true,
+                    "type": ["TextArea"]
+                }
+            ]
+        }
+    },
+    "enabledClasses": [
+        "Dataset", "Person", "Organization"
+    ]
+}
+""";
+
     public ScieboRdsService(HttpClient httpClient, IOptions<ScieboRdsConfiguration> configuration)
     {
         this.httpClient = httpClient;
@@ -65,7 +131,7 @@ public class ScieboRdsService : IScieboRdsService
                 infoUrl = "https://doris.snd.se",
                 helpUrl = "https://doris.snd.se",
                 displayName = "Doris",
-                metadataProfile = metadataProfile,
+                metadataProfile = metadataProfileOsf,
                 //projectLinkTemplate = ""
             }
         });
