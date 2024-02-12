@@ -90,7 +90,7 @@ public class ScieboRdsService : IScieboRdsService
                 infoUrl = "https://doris.snd.se",
                 helpUrl = "https://doris.snd.se",
                 displayName = "Doris",
-                metadataProfile = metadataProfile,
+                //metadataProfile = metadataProfile,
                 projectLinkTemplate = "https://doris.snd.se/{projectId}"
             }
         });
