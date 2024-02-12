@@ -17,44 +17,19 @@ public class ScieboRdsService : IScieboRdsService
 {
     "metadata": {
         "name": "DORIS Profile",
-        "description": "Just the label",
+        "description": "DORIS Profile",
         "version": 0.1,
         "warnMissingProperty": true,
         "keywords": ["doris", "Dataset"]
-    },
-    "hide": {
-        "Dataset": []
-    },
-    "layouts": {
-        "Dataset": [
-            {
-                "name": "About",
-                "description": "Descriptive name for the dataset",
-                "inputs": [
-                    "name"
-                ]
-            }
-        ]
     },
     "classes": {
         "Dataset": {
             "definition": "override",
             "subClassOf": [],
-            "inputs": [
-                {
-                    "id": "https://schema.org/name",
-                    "name": "name",
-                    "label": "Title",
-                    "help": "Use a descriptive name for the dataset",
-                    "required": true,
-                    "multiple": false,
-                    "type": ["Text"]
-                }
-            ]
+            "inputs": []
         }
     },
-    "lookup": {
-    }
+    "lookup": {}
 }
 """;
 
@@ -91,7 +66,7 @@ public class ScieboRdsService : IScieboRdsService
                 helpUrl = "https://doris.snd.se",
                 displayName = "Doris",
                 //metadataProfile = metadataProfile,
-                projectLinkTemplate = "https://doris.snd.se/{projectId}"
+                //projectLinkTemplate = ""
             }
         });
 
