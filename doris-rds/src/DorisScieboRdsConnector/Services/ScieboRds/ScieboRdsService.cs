@@ -19,8 +19,7 @@ public class ScieboRdsService : IScieboRdsService
         "name": "DORIS Profile",
         "description": "DORIS Profile",
         "version": 0.1,
-        "warnMissingProperty": true,
-        "keywords": ["doris", "Dataset"]
+        "warnMissingProperty": true
     },
     "classes": {
         "Dataset": {
@@ -29,6 +28,7 @@ public class ScieboRdsService : IScieboRdsService
             "inputs": []
         }
     },
+    "enabledClasses": ["Dataset"]
     "lookup": {}
 }
 """;
