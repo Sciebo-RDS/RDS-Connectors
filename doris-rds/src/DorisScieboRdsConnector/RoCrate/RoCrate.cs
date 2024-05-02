@@ -5,31 +5,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 
-public class RoCrate
+public class RoCrate(
+    string projectId,
+    string eduPersonPrincipalName,
+    string principalDomain,
+    string? name,
+    string? dataReviewLink,
+    IEnumerable<RoFile> files)
 {
-    public string ProjectId { get; }
-    public string EduPersonPrincipalName { get; }
-    public string PrincipalDomain { get; }
-    public string? Name { get; }
-    public string? DataReviewLink { get; }
+    public string ProjectId { get; } = projectId;
+    public string EduPersonPrincipalName { get; } = eduPersonPrincipalName;
+    public string PrincipalDomain { get; } = principalDomain;
+    public string? Name { get; } = name;
+    public string? DataReviewLink { get; } = dataReviewLink;
 
-    public IEnumerable<RoFile> Files { get; }
-
-    public RoCrate(
-        string projectId, 
-        string eduPersonPrincipalName, 
-        string principalDomain,
-        string? name,
-        string? dataReviewLink,
-        IEnumerable<RoFile> files)
-    {
-        EduPersonPrincipalName = eduPersonPrincipalName;
-        ProjectId = projectId;
-        PrincipalDomain = principalDomain;
-        Name = name;
-        DataReviewLink = dataReviewLink;
-        Files = files;
-    }
+    public IEnumerable<RoFile> Files { get; } = files;
 
     public JsonObject ToGraph()
     {
