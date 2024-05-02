@@ -20,21 +20,18 @@ builder.Services.AddHttpClient<IScieboRdsService, ScieboRdsService>();
 builder.Services.AddHttpClient<IStorageService, NextCloudStorageService>();
 builder.Services.AddHttpClient<OcsApiClient>();
 
-builder.Services.AddOptions<DorisConfiguration>()
+builder.Services.AddOptionsWithValidateOnStart<DorisConfiguration>()
     .Bind(builder.Configuration.GetSection(DorisConfiguration.ConfigurationSection))
     .Validate(conf => !builder.Environment.IsProduction() || conf.DorisApiEnabled, "Can not disable Doris API in production.")
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
 
-builder.Services.AddOptions<NextCloudConfiguration>()
+builder.Services.AddOptionsWithValidateOnStart<NextCloudConfiguration>()
     .Bind(builder.Configuration.GetSection(NextCloudConfiguration.ConfigurationSection))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
 
-builder.Services.AddOptions<ScieboRdsConfiguration>()
+builder.Services.AddOptionsWithValidateOnStart<ScieboRdsConfiguration>()
     .Bind(builder.Configuration.GetSection(ScieboRdsConfiguration.ConfigurationSection))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
 
 var app = builder.Build();
 app.MapControllers();

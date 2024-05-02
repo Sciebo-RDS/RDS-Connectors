@@ -53,28 +53,24 @@ public class NextCloudStorageService : IStorageService
 
     public async Task SetupProject(string projectId)
     {
+        async Task CreateDirectory(Uri uri)
+        {
+            if (await DirectoryExists(uri))
+            {
+                logger.LogDebug("📁SetupProject directory exists: {uri}", uri);
+            }
+            else
+            {
+                logger.LogDebug("📁SetupProject create directory: {uri}", uri);
+                await webDavClient.Mkcol(uri);
+            }
+        }
+
         var baseUri = GetProjectWebDavUri(projectId);
-        var dataUri = new Uri(baseUri, "data/");
 
-        if (await DirectoryExists(baseUri))
-        {
-            logger.LogDebug("📁SetupProject projectId exists: {projectId}", projectId);
-        }
-        else
-        {
-            logger.LogDebug("📁SetupProject create directory: {baseUri}", baseUri);
-            await webDavClient.Mkcol(baseUri);
-        }
-
-        if (await DirectoryExists(dataUri))
-        {
-            logger.LogDebug("📁SetupProject data folder exists: {projectId}", projectId);
-        }
-        else
-        {
-            logger.LogDebug("📁SetupProject create directory: {dataUri}", dataUri);
-            await webDavClient.Mkcol(dataUri);
-        }
+        await CreateDirectory(baseUri);
+        await CreateDirectory(new Uri(baseUri, "data/"));
+        await CreateDirectory(new Uri(baseUri, "data/data/"));
 
         await GetOrCreateLinkShare(projectId);
     }
@@ -87,7 +83,7 @@ public class NextCloudStorageService : IStorageService
     public Task<string?> GetDataReviewLink(string projectId)
     {
         string url = new Uri(configuration.BaseUrl,
-            $"apps/files?dir=" + Uri.EscapeDataString(rootDirectoryName + "/" + projectId)).AbsoluteUri;
+            $"apps/files?dir=" + Uri.EscapeDataString(rootDirectoryName + '/' + projectId)).AbsoluteUri;
 
         return Task.FromResult<string?>(url);
     }
@@ -188,7 +184,7 @@ public class NextCloudStorageService : IStorageService
         }
 
         Uri baseUri = GetProjectWebDavUri(projectId);
-        string filePath = "data/" + fileName;
+        string filePath = "data/data/" + fileName;
         var destinationUri = new Uri(baseUri,
             // To generate a valid URI, we must encode each part of the file path
             string.Join('/', filePath.Split('/').Select(Uri.EscapeDataString)));
@@ -216,7 +212,7 @@ public class NextCloudStorageService : IStorageService
     {
         var fileList = new List<RoFile>();
         var baseUri = GetProjectWebDavUri(projectId);
-        var linkShareUri = new Uri(baseUri, "data/");
+        var linkShareUri = new Uri(baseUri, "data/data/");
 
         string shareToken = (await GetOrCreateLinkShare(projectId)).token!;
         logger.LogDebug("📁GetFiles projectId: {projectId} shareToken: {shareToken}", projectId, shareToken);
@@ -335,5 +331,5 @@ public class NextCloudStorageService : IStorageService
         return response.ocs.data;
     }
 
-    private static string GetLinkSharePath(string projectId) => $"{rootDirectoryName}/{projectId}/data";
+    private static string GetLinkSharePath(string projectId) => $"{rootDirectoryName}/{projectId}/data/data";
 }
