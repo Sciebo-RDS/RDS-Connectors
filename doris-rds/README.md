@@ -1,11 +1,12 @@
 ## DORIS RDS-connector
 
-This connector is used in SUNET for publishing data to S3 buckets and pushing ro-crate manifest to SND:s manifest index.
+This connector is used in Sunet Drive for publishing data to a dedicated NextCloud directory and pushing RO-Crate metadata to SND/Doris.
 
 ### Describo profile
 
-The connector will only suport the dataset `name` atrribute for the first release.
-This profile for describo should limit and set the name as required:
+The connector will only support the dataset `name` attribute for the first release.
+Right now we do not use any Describo profile as the `name` attribute is available in the UI anyway, 
+but this profile for should limit and set the name as required (untested):
 
 ```json
 {

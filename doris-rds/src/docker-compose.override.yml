@@ -1,17 +1,26 @@
-version: '3.4'
-
 services:
-  dorissciebordsconnector:
+  doris-connector:
+    hostname: doris-connector
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - Domain=test.se
-      - ScieboRds__TokenStorageUrl
+      - ScieboRds__RegisterConnectorOnStartup=false
+      - ScieboRds__TokenStorageUrl=http://localhost/dummy
       - ScieboRds__ConnectorServiceName=port-doris
-      - S3__Url=https://test.se
-      - S3__AccessKey=key
-      - S3__SecretKey=secret
-      - ManifestIndex__Url=https://snd-storage-metadata-index-test-snd-dev.apps.k8s.gu.se
-      - ManifestIndex__ApiKey=key
+      - NextCloud__BaseUrl=http://nextcloud
+      - NextCloud__User=datasets
+      - NextCloud__Password=datasets123
+      - Doris__DorisApiEnabled=false
+      - Doris__PrincipalDomain=test.se
+      - Doris__ApiUrl=https://dummy.se
+      - Doris__ApiKey=key
+      - Logging__LogLevel__Default=Debug
     ports:
-      - 8080:80
+      - 8080:8080
+  nextcloud:
+    image: nextcloud
+    hostname: nextcloud
+    environment:
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+    ports:
+      - 8081:80

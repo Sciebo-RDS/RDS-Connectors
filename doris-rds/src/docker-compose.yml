@@ -1,8 +1,6 @@
-version: '3.4'
-
 services:
-  dorissciebordsconnector:
-    image: ${DOCKER_REGISTRY-}dorissciebordsconnector
+  doris-connector:
+    image: ${DOCKER_REGISTRY-}doris-connector
     build:
       context: .
       dockerfile: Dockerfile
