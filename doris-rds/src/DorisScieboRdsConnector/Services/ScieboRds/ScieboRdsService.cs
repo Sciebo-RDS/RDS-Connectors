@@ -34,7 +34,7 @@ public class ScieboRdsService(HttpClient httpClient, IOptions<ScieboRdsConfigura
                 description = new
                 {
                     en = "Connector for publishing file metadata to Doris",
-                    sv = "Connector för filmetadata till Doris"
+                    sv = "Connector för publicering av filmetadata till Doris"
                 },
                 icon,
                 infoUrl = "https://doris.snd.se",

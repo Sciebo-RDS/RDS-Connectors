@@ -1,5 +1,3 @@
-version: '3.4'
-
 services:
   doris-connector:
     hostname: doris-connector
