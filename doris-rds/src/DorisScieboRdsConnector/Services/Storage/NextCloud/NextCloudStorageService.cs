@@ -133,7 +133,8 @@ public class NextCloudStorageService : IStorageService
         }
 
         // Upload via NextClouds WebDav chunked upload API
-        async Task Upload(Uri destinationUri, Stream stream)
+        // Returns SHA256 checksum
+        async Task<byte[]> Upload(Uri destinationUri, Stream stream)
         {
             var uri = new Uri(webDavUploadsBaseUri, "doris-connector-upload-" + Guid.NewGuid().ToString() + "/");
             // Add Destination header to all webdav calls to ensure we use v2 of the WebDav chunked upload API
@@ -144,11 +145,18 @@ public class NextCloudStorageService : IStorageService
                 Headers = destinationHeader
             });
 
+            using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             long bytesRead = 0;
             var monitoringStream = new MonitoringStream(stream);
             monitoringStream.DidRead += (_, e) =>
             {
                 bytesRead += e.Count;
+                sha256.AppendData(e);
+            };
+            monitoringStream.DidReadByte += (_, e) =>
+            {
+                bytesRead++;
+                sha256.AppendData(new[] { (byte)e });
             };
 
             int chunk = 1;
@@ -164,6 +172,8 @@ public class NextCloudStorageService : IStorageService
 
             // Destination header is already included in Move by default
             await webDavClient.Move(new Uri(uri, ".file"), destinationUri);
+
+            return sha256.GetCurrentHash();
         }
 
         async Task UpdateSha256File(Uri baseUri, string filePath, byte[] sha256Hash)
@@ -200,12 +210,9 @@ public class NextCloudStorageService : IStorageService
 
         await EnsureDirectoryExists(baseUri, destinationUri);
 
-        using var sha256 = SHA256.Create();
-        using var hashStream = new CryptoStream(stream, sha256, CryptoStreamMode.Read);
+        var sha256 = await Upload(destinationUri, stream);
 
-        await Upload(destinationUri, hashStream);
-
-        await UpdateSha256File(baseUri, filePath, sha256.Hash!);
+        await UpdateSha256File(baseUri, filePath, sha256);
     }
 
     public async Task<IEnumerable<RoFile>> GetFiles(string projectId)
